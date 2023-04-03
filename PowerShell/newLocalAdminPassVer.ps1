@@ -6,7 +6,7 @@ $PasswordV = Read-Host "Verify the password" -AsSecureString
 
 if ( $Password -ceg $PasswordV ) {
 
-New-LocalUser -Name $User -Password SPassword
+New-LocalUser -Name $User -Password $Password
 
 Add-LocalGroupMember -Group "Administrators" -Member $User
 
