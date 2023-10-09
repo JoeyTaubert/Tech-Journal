@@ -6,3 +6,7 @@
 |pippin|adminPippin|httpd|
 |peregrin.took|28Peregrin|sshd|
 |samwise.gamgee|Mallorn79|sshd|
+|gandalf.grey|gandalfrockyou|N/A - local PC|
+|galadriel|galadrielarwen111|N/A - local PC|
+|boromir|BoRomir2000Z|N/A - local PC|
+
