@@ -15,3 +15,4 @@
 |username|password|service|
 |--------|--------|-------|
 |peregrin.took|1Tookie|sshd|
+|Pippin|palentir|MediaWiki|
