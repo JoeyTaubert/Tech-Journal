@@ -1,0 +1,7 @@
+## Database settings
+ = mysql;
+ = localhost;
+ = mediawiki;
+ = root;
+ = 1Tookie;
+
