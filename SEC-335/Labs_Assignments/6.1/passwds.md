@@ -10,3 +10,8 @@
 |galadriel|galadrielarwen111|N/A - local PC|
 |boromir|BoRomir2000Z|N/A - local PC|
 
+
+# Usernames and Passwords for 10.0.5.25
+|username|password|service|
+|--------|--------|-------|
+|peregrin.took|1Tookie|sshd|
