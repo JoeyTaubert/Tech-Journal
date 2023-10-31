@@ -16,3 +16,8 @@
 |--------|--------|-------|
 |peregrin.took|1Tookie|sshd|
 |Pippin|palentir|MediaWiki|
+
+# Usernames and Passwords for 10.0.5.31
+|username|password|service|
+|--------|--------|-------|
+|Administrator|Moria2Featon6|sshd/rdp|
