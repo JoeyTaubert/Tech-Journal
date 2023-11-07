@@ -1,0 +1,206 @@
+
+-----------------
+DIRB v2.22    
+By The Dark Raver
+-----------------
+
+OUTPUT_FILE: dirb.txt
+START_TIME: Tue Oct 31 12:10:10 2023
+URL_BASE: http://10.0.5.28/
+WORDLIST_FILES: /usr/share/wordlists/dirb/common.txt
+
+-----------------
+
+GENERATED WORDS: 4612
+
+---- Scanning URL: http://10.0.5.28/ ----
++ http://10.0.5.28/index.html (CODE:200|SIZE:269)
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/
++ http://10.0.5.28/server-status (CODE:403|SIZE:274)
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/ ----
++ http://10.0.5.28/phpmyadmin/ChangeLog (CODE:200|SIZE:20501)
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/doc/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/examples/
++ http://10.0.5.28/phpmyadmin/favicon.ico (CODE:200|SIZE:22486)
++ http://10.0.5.28/phpmyadmin/index.php (CODE:200|SIZE:9453)
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/js/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/libraries/
++ http://10.0.5.28/phpmyadmin/LICENSE (CODE:200|SIZE:18092)
++ http://10.0.5.28/phpmyadmin/phpinfo.php (CODE:200|SIZE:9457)
++ http://10.0.5.28/phpmyadmin/README (CODE:200|SIZE:1520)
++ http://10.0.5.28/phpmyadmin/robots.txt (CODE:200|SIZE:26)
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/setup/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/sql/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/themes/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/tmp/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/vendor/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/doc/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/doc/html/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/examples/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/js/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/js/transformations/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/js/vendor/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/libraries/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/libraries/certs/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/libraries/classes/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/libraries/dbi/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/libraries/rte/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/setup/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/setup/frames/
++ http://10.0.5.28/phpmyadmin/setup/index.php (CODE:200|SIZE:5439)
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/setup/lib/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/sql/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/components/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/config/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/console/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/database/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/display/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/error/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/export/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/javascript/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/list/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/login/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/navigation/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/server/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/table/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/test/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/themes/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/themes/original/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/tmp/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/vendor/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/vendor/bin/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/vendor/composer/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/vendor/google/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/vendor/phpmyadmin/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/doc/html/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/doc/html/_images/
++ http://10.0.5.28/phpmyadmin/doc/html/index.html (CODE:200|SIZE:14976)
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/js/transformations/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/js/vendor/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/js/vendor/jquery/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/libraries/certs/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/libraries/classes/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/libraries/classes/Server/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/libraries/dbi/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/libraries/rte/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/setup/frames/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/setup/lib/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/components/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/config/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/console/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/database/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/database/search/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/database/tracking/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/display/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/display/export/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/display/import/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/display/results/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/error/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/export/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/javascript/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/list/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/login/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/navigation/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/server/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/server/databases/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/server/engines/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/server/plugins/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/table/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/table/chart/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/table/insert/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/table/search/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/templates/table/tracking/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/test/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/themes/original/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/themes/original/css/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/themes/original/img/
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/themes/original/jquery/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/vendor/bin/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/vendor/composer/ ----
++ http://10.0.5.28/phpmyadmin/vendor/composer/LICENSE (CODE:200|SIZE:1070)
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/vendor/google/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/vendor/phpmyadmin/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/doc/html/_images/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/js/vendor/jquery/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/libraries/classes/Server/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/database/search/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/database/tracking/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/display/export/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/display/import/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/display/results/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/server/databases/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/server/engines/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/server/plugins/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/table/chart/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/table/insert/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/table/search/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/templates/table/tracking/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/themes/original/css/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/themes/original/img/ ----
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/themes/original/jquery/ ----
+==> DIRECTORY: http://10.0.5.28/phpmyadmin/themes/original/jquery/images/
+
+---- Entering directory: http://10.0.5.28/phpmyadmin/themes/original/jquery/images/ ----
+
+-----------------
+END_TIME: Tue Oct 31 12:14:45 2023
+DOWNLOADED: 272108 - FOUND: 12
