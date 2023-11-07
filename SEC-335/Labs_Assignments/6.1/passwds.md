@@ -6,14 +6,15 @@
 |pippin|adminPippin|httpd|
 |peregrin.took|28Peregrin|sshd|
 |samwise.gamgee|Mallorn79|sshd|
-|gandalf.grey|gandalfrockyou|N/A - local PC|
-|galadriel|galadrielarwen111|N/A - local PC|
-|boromir|BoRomir2000Z|N/A - local PC|
+|gandalf.grey|gandalfrockyou|sshd|
+|galadriel|galadrielarwen111|sshd|
+|boromir|BoRomir2000Z|sshd|
 
 # Usernames and Passwords for 10.0.5.28
 |username|password|service|
 |--------|--------|-------|
 |gandalf|shallnotpass|phpMyAdmin (html)|
+|gandalf|gandalfthewhite|local PC|
 
 # Usernames and Passwords for 10.0.5.25
 |username|password|service|
