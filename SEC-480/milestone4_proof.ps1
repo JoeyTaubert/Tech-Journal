@@ -101,7 +101,8 @@ if ($cloneType -eq "F" -or "f") {
     Write-Host "Reference Snapshot: $snapshot"
     Write-Host "Target VMHost: $vmhost"
     Write-Host "Target Datastore: $ds"
-
+    Write-Host "`n"
+    
     $confirmation = Read-Host "Do the parameters look correct? [y/n]"
 
     if ($confirmation -eq "y" -or $confirmation -eq "Y") {
@@ -173,6 +174,23 @@ if ($cloneType -eq "F" -or "f") {
 
     $ds = Get-DataStore -Name $dsList[$dsPick]
     
+    Write-Host "`n"
+    Write-Host "Linked Clone Name: $linkedClone"
+    Write-Host "Source VM for Clone: $vm"
+    Write-Host "Reference Snapshot: $snapshot"
+    Write-Host "Target VMHost: $vmhost"
+    Write-Host "Target Datastore: $ds"
+    Write-Host "`n"
+    
+    $confirmation = Read-Host "Do the parameters look correct? [y/n]"
+
+    if ($confirmation -eq "y" -or $confirmation -eq "Y") {
+
+    } else {
+        Write-Host "Please start over"
+        exit
+    }
+
     # Create the linked clone:
     $linkedvm = New-VM -LinkedClone -Name $linkedClone -VM $vm -ReferenceSnapshot $snapshot -VMHost $vmhost -Datastore $ds
 

@@ -2,8 +2,8 @@ Import-Module '480-Utils' -Force
 
 480Banner
 
-$conf = Get-480Config -config_path "/home/joey/Tech-Journal/SEC-480/modules/480-Utils/480.json"
-480Connect -server $conf.vcenter_server
+480Cloner -config_path /home/joey/Tech-Journal/SEC-480/modules/480-Utils/480.json 
 
-Select-VM -folder "BASEVM"
+# New-480SnapshotFrom-Name -vmName dc1
 
+# Set-480NetworkAdapters
