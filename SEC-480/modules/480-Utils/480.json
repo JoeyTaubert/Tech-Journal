@@ -1,0 +1,7 @@
+{
+    "vcenter_server" : "vcenter.joey.local",
+    "vm_folder" : "BASEVM",
+    "esxi_host" : "192.168.7.27",
+    "default_network" : "480-WAN",
+    "default_datastore" : "datastore2"
+}
