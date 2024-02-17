@@ -163,7 +163,17 @@ function Select-480Datastore() {
 ### Usage: New-SnapshotFrom-Name -vmName (name of vm)
 function New-480SnapshotFrom-Name([string] $vmName) {
     $vm = Get-VM -name $vmName
-    $vm | New-Snapshot -Name "Base" | Out-Null # Out-Null discards standard output stream
+
+    $defaultSnapName = "Base"
+
+    $snapName = Read-Host "What would you like to name the snapshot? [Base]"
+
+    # If no input was provided, proceed with default snapshot name
+    if ($snapName -eq "") {
+        $snapName = $defaultSnapName
+    }
+
+    $vm | New-Snapshot -Name $snapName | Out-Null # Out-Null discards standard output stream
 }
 
 ### Usage: Set-NetworkAdapters [-vname (VM Name) (OPTIONAL)]
@@ -411,6 +421,7 @@ function 480Cloner([string] $config_path) {
     }
 
     # Grab a snapshot:
+    Write-Host "`n"
     Write-Host "Getting snapshot..."
     New-480SnapshotFrom-Name($newVmName)
 
@@ -449,6 +460,7 @@ function 480Cloner([string] $config_path) {
 
 ### Usage: 480PowerToggle [-vname (VM Name) (OPTIONAL)] [-powerAction ("On"/"Off") (OPTIONAL)]
 function 480PowerToggle() {
+    # ChatGPT helped me come up with this param block
     param(
         [string]$vname,
         [ValidateSet("On", "Off")]
@@ -528,4 +540,5 @@ function 480PowerToggle() {
             Write-Host " has been powered off."
         }
     }
+    $powOut | Out-Null
 }
