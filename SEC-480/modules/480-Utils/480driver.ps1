@@ -7,3 +7,5 @@ Import-Module '480-Utils' -Force
 # New-480SnapshotFrom-Name -vmName dc1
 
 # Set-480NetworkAdapters
+# Set-NetworkAdapters -vname awx
+# 480PowerToggle -vname awx -powerAction "Off"

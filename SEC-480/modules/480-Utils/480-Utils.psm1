@@ -46,7 +46,7 @@ function Select-480BaseVM([string] $folder) {
         $index = 1
 
         Write-Host "`n"
-        Write-Host "-=-=-= AVAILABLE BASE VMs =-=-=-"
+        Write-Host "-=-=-= AVAILABLE VMs IN $folder =-=-=-" -ForegroundColor Green
         foreach($vm in $vms) {
             Write-Host [$index] $vm.name
             $index += 1
@@ -58,12 +58,13 @@ function Select-480BaseVM([string] $folder) {
         if ($vms -contains $selectedvm) {
 
         } else {
-            Write-Host "Invalid index. Goodbye..."
+            Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
             exit
         }
 
         $selectedvmname = $selectedvm.name
-        Write-Host "You picked $selectedvmname"
+        Write-Host "You picked " -NoNewline
+        Write-Host "$selectedvmname" -ForegroundColor Green
         return $selectedvm
     } catch {
         Write-Host "Invalid folder option: $folder"
@@ -71,12 +72,12 @@ function Select-480BaseVM([string] $folder) {
     }
 }
 
-function Select-480aseVMFolder() {
+function Select-480BaseVMFolder() {
     # Get all available VM folders and then list them
     $availableFolders = Get-Folder -Type VM | Where-Object { $_.Name -ne 'vm' } | Select-Object -ExpandProperty Name
 
     Write-Host "`n"
-    Write-Host "-=-=-= AVAILABLE FOLDERS =-=-=-"
+    Write-Host "-=-=-= AVAILABLE FOLDERS =-=-=-" -ForegroundColor Green
     $1 = 1
     foreach($availableFolder in $availableFolders) {
         Write-Host "$1. $availableFolder"
@@ -92,11 +93,12 @@ function Select-480aseVMFolder() {
     if ($availableFolders -contains $availableFolders[$folderIndex]) {
 
         $folderName = $availableFolders[$folderIndex]
-        Write-Host "You picked $folderName"
+        Write-Host "You picked " -NoNewline
+        Write-Host "$folderName" -ForegroundColor Green
         $folder = $availableFolders[$folderIndex]
 
     } else {
-        Write-Host "Invalid index. Goodbye..."
+        Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
         exit
     }
 
@@ -107,7 +109,7 @@ function Select-480Snapshot([VMware.VimAutomation.ViCore.Types.V1.Inventory.Virt
     $snapshots = Get-Snapshot -VM $vm
     
     Write-Host "`n"
-    Write-Host "-=-=-= SNAPSHOT LIST FOR $vm =-=-=-"
+    Write-Host "-=-=-= SNAPSHOT LIST FOR $vm =-=-=-" -ForegroundColor Green
     $1 = 1
     foreach($snapshot in $snapshots) {
         Write-Host "$1. $snapshot"
@@ -120,9 +122,11 @@ function Select-480Snapshot([VMware.VimAutomation.ViCore.Types.V1.Inventory.Virt
     $snapshotChoice = $snapshots[$snapshotIndex - 1]
 
     if ($snapshots -contains $snapshotChoice) {
-        Write-Host "You picked $snapshotChoice"
+        Write-Host "You picked " -NoNewline
+        Write-Host "$snapshotChoice" -ForegroundColor Green
     } else {
-        Write-Host "Invalid index. Goodbye..."
+        Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
+        exit
     }
 
     return $snapshotChoice
@@ -132,7 +136,7 @@ function Select-480Datastore() {
     $dsList = Get-Datastore | Select-Object -ExpandProperty "Name"
 
     Write-Host "`n"
-    Write-Host "-=-=-= DATASTORE LIST =-=-=-"
+    Write-Host "-=-=-= DATASTORE LIST =-=-=-" -ForegroundColor Green
     $2 = 1
     foreach ($dsName in $dsList) {
         Write-Host "$2. $dsName"
@@ -147,9 +151,12 @@ function Select-480Datastore() {
 
         $ds = Get-DataStore -Name $dsList[$dsPick]
         
+        Write-Host "You picked " -NoNewline
+        Write-Host "$ds" -ForegroundColor Green
+
         return $ds
     } else {
-        Write-Host "Invalid input, goodbye"
+        Write-Host "Invalid input. Goodbye..." -ForegroundColor Red
         exit
     }
 }
@@ -160,40 +167,54 @@ function New-480SnapshotFrom-Name([string] $vmName) {
     $vm | New-Snapshot -Name "Base" 
 }
 
-### Usage: Select-NetworkAdapters
-function Set-480NetworkAdapters() {
-    $vmlist = Get-VM | Select-Object -ExpandProperty Name
+### Usage: Set-NetworkAdapters [-vname (VM Name) (OPTIONAL)]
+function Set-480NetworkAdapters($vname) {
+    # If a parameter was provided, continue
+    if ($vname) {
+        Write-Host "Selected VM: " -NoNewline
+        Write-Host "$vname" -ForegroundColor Green
+    # If no parameter was provided, get the desired VM
+    } else {
+        $vmlist = Get-VM | Select-Object -ExpandProperty Name
 
-    Write-Host "`n"
-    Write-Host "-=-=-= AVAILABLE VMs =-=-=-"
-    $1 = 1
-    foreach ($vm in $vmlist) {
-        Write-Host "$1. $vm"
-        $1+=1
+        Write-Host "`n"
+        Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
+        $1 = 1
+        foreach ($vm in $vmlist) {
+            Write-Host "$1. $vm"
+            $1+=1
+        }
+
+        $vindex = Read-Host "Index of VM to make network adapter change to"
+
+        $vindex = [int]$vindex
+        $vindex-=1
+
+        try {
+            $vname = $vmlist[$vindex]
+            Write-Host "You picked " -NoNewline
+            Write-Host "$vname" -ForegroundColor Green
+        } catch {
+            Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
+            exit
+        }
     }
-    
-    $vindex = Read-Host "Index of VM to make network adapter change to"
 
-    $vindex = [int]$vindex
-    $vindex-=1
+    $vadapters = Get-VM -Name $vname | Get-NetworkAdapter | Select-Object -ExpandProperty "Name"
 
-    try {
-        $vname = $vmlist[$vindex]
-        Write-Host "You picked $vname"
-    } catch {
-        Write-Host "Invalid index. Goodbye..."
-        exit
+    $adapterList = New-Object System.Collections.Generic.List[string]
+
+    foreach ($adapter in $vadapters) {
+        $adapterList.Add($adapter)
     }
-    $v = Get-VM -Name $vname
-
-    $vadapters = $v | Get-NetworkAdapter | Select-Object -ExpandProperty "Name"
 
     # If there is only 1 adapter, skip picking which adapter
-    if ($vadapters.Length -eq [string]$vadapters.Length) {
-        $adapter = $vadapters
-    } else {
+    if ($adapterList.Count -ne 1) {
+        $adapter = $adapterList[0]
+
+
         Write-Host "`n"
-        Write-Host "-=-=-= AVAILABLE ADAPTERS =-=-=-"
+        Write-Host "-=-=-= AVAILABLE ADAPTERS =-=-=-" -ForegroundColor Green
         $3 = 1
         foreach ($adapter in $vadapters) {
             Write-Host "$3. $adapter"
@@ -206,18 +227,25 @@ function Set-480NetworkAdapters() {
             $adapterPickIndex = [int]$adapterPickIndex
             $adapterPickIndex-=1
         } catch {
-            Bad index. Aborting...
+            Write-Host "Bad index. Aborting..." -ForegroundColor Red
             exit
         }
     
-        $adapter = $vadapters[$adapterPickIndex]
-        Write-Host "You picked $adapter"
+        $adapter = $adapterList[$adapterPickIndex]
+        Write-Host "You picked " -NoNewline
+        Write-Host "$adapter" -ForegroundColor Green
+    } else {
+        $adapterPickIndex = 0
+        $adapter = $adapterList[$adapterPickIndex]
+        Write-Host "Selected " -NoNewline
+        Write-Host "$adapter" -NoNewline -ForegroundColor Green
+        Write-Host " as it is the only available adapter"
     }
 
     $vNetworks = Get-VirtualNetwork | Select-Object -ExpandProperty "Name"
 
     Write-Host "`n"
-    Write-Host "-=-=-= AVAILABLE NETWORKS =-=-=-"
+    Write-Host "-=-=-= AVAILABLE NETWORKS =-=-=-" -ForegroundColor Green
     $2 = 1
     foreach ($network in $vNetworks) {
         Write-Host "$2. $network"
@@ -231,16 +259,21 @@ function Set-480NetworkAdapters() {
     try {
         $networkName = $vNetworks[$networkIndex]
     } catch {
-        Invalid index. Goodbye...
+        Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
+        exit
     }
-    Write-Host "You picked $networkName"
+    Write-Host "You picked " -NoNewline
+    Write-Host "$networkName" -ForegroundColor Green
 
-    Write-Host "-=-=-= SUMMARY =-=-=-"
+    Write-Host "`n"
+    Write-Host "-=-=-= SUMMARY =-=-=-" -ForegroundColor Green
     Write-Host "VM Name: $vname"
     Write-Host "Adapter: $adapter"
     Write-Host "Network: $networkName"
 
-    Get-VM -Name $vname | Get-NetworkAdapter -Name $adapter | Set-NetworkAdapter -Portgroup $networkName
+    # Proceed?
+
+    $netOut = Get-VM -Name $vname | Get-NetworkAdapter -Name $adapter | Set-NetworkAdapter -Portgroup $networkName -Confirm:$false
 
 }
 
@@ -274,31 +307,44 @@ function 480Cloner([string] $config_path) {
 
     # Summary & Confirm
     Write-Host "`n"
-    Write-Host "-=-=-= LINKED VM SUMMARY =-=-=-"
+    Write-Host "-=-=-= LINKED VM SUMMARY =-=-=-" -ForegroundColor Green
     Write-Host "Name: $linkedClone"
     Write-Host "Base VM: $vm"
     Write-Host "Ref Snapshot: $snapshot"
     Write-Host "ESXi IP: $esxiIP"
     Write-Host "Datastore: $datastore"
 
-    $c = Read-Host "Proceed with creation of linked clone? (y/n)"
+    $allVMs = Get-VM | Select-Object -ExpandProperty Name
+
+    if ($allVMs -contains $linkedClone) {
+        # Maybe check this earlier on and automatically delete it?
+        Write-Host "Temporary linked clone already exists. Please delete it and try again. Exiting..." -ForegroundColor Red
+        exit
+    } else {
+
+    }
+
+    $c = Read-Host "Proceed with creation of linked clone? (y/n)" 
 
     if ($c -eq "y" -or $c -eq "Y") {
         Write-Host "Proceeding with linked clone creation..."
     } else {
-        Write-Host "Aborting..."
+        Write-Host "Aborting..." -ForegroundColor Green
         exit #Maybe replace with a loop back to a main menu?
     }
 
+
     # Create linked clone
     $linkedvm = New-VM -LinkedClone -Name $linkedClone -VM $vm -ReferenceSnapshot $snapshot -VMHost $esxiIP -Datastore $datastore
+    
+    
 
     $d = Read-Host "Proceed with full clone creation? (y/n)"
 
     if ($d -eq "y" -or $d -eq "Y") {
 
     } else {
-        Write-Host "Exiting..."
+        Write-Host "Exiting..." -ForegroundColor Green
         exit
     }
 
@@ -312,17 +358,114 @@ function 480Cloner([string] $config_path) {
 
     $newVmName = "{0}.base.v{1}" -f $systemName, $num
     
-    # Create the new VM:
-    New-VM -Name $newVmName -VMHost $esxiIP -VM $linkedClone -Datastore $datastore
+    $allVMs2 = Get-VM | Select-Object -ExpandProperty Name
+
+    if ($allVMs2 -contains $newVmName) {
+        Write-Host "Duplicate VM name. Exiting..." -ForegroundColor Red
+        exit
+    } else {
+        # Create the new VM:
+        New-VM -Name $newVmName -VMHost $esxiIP -VM $linkedClone -Datastore $datastore
+    }
 
     # Grab a snapshot:
+    Write-Host "Getting snapshot..."
     New-480SnapshotFrom-Name($newVmName)
 
     # Remove temporary linked clone:
-    $linkedvm | Remove-VM
+    Write-Host "Removing temporary VM, " -NoNewline
+    Write-Host "$linkedClone" -ForegroundColor Yellow
+    $linkedvm | Remove-VM -Confirm:$false
 
-    Write-Host "Complete! Exiting..."
-
+    Write-Host "`n"
     # Network adapter change
-    Set-480NetworkAdapters
+    $nchoice = Read-Host "Would you like to change the network adapter of $newVmName ? (y/n)"
+    
+    if ($nchoice -eq "y" -or $nchoice -eq "Y") {
+        Set-480NetworkAdapters($newVmName)
+    } else {
+
+    }
+
+    $powchoice = Read-Host "Would you like to power on $newVmName ? (y/n)"
+
+    if ($powchoice -eq "y" -or $powchoice -eq "Y") {
+        $powerAction = "On"
+        480PowerToggle -vname $newVmName -powerAction $powerAction
+    }
+
+    Write-Host "Exiting.." -ForegroundColor Green
+}
+
+### Usage: 480PowerToggle [-vname (VM Name) (OPTIONAL)] [-powerAction ("On"/"Off") (OPTIONAL)]
+function 480PowerToggle() {
+    param(
+        [string]$vname,
+        [ValidateSet("On", "Off")]
+        [string]$powerAction
+    )
+
+    # If a parameter was provided, continue
+    if ($vname) {
+        Write-Host "Selected VM: " -NoNewline
+        Write-Host "$vname" -ForegroundColor Green
+    # If no parameter was provided, get the desired VM
+    } else {
+        $vmlist = Get-VM | Select-Object -ExpandProperty Name
+
+        Write-Host "`n"
+        Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
+        $1 = 1
+        foreach ($vm in $vmlist) {
+            Write-Host "$1. $vm"
+            $1+=1
+        }
+
+        $vindex = Read-Host "Index of VM to make power change to"
+
+        $vindex = [int]$vindex
+        $vindex-=1
+
+        try {
+            $vname = $vmlist[$vindex]
+            Write-Host "You picked " -NoNewline
+            Write-Host "$vname" -ForegroundColor Green
+        } catch {
+            Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
+            exit
+        }
+    }
+
+    if (-not $powerAction) {
+        Write-Host "`n"
+        Write-Host "-=-=-= ACTIONS =-=-=-" -ForegroundColor Green
+        Write-Host "1. Power On"
+        Write-Host "2. Power Off"
+    
+        $actionChoice = Read-Host "What number action would you like to take?"
+        
+        if ($actionChoice -eq "1") {
+            $powerAction = "On"
+        } elseif ($actionChoice -eq "2") {
+            $powerAction = "Off"
+        } else {
+            Write-Host "No valid selection. Exiting..." -ForegroundColor Red
+            exit
+        }
+    }
+
+    # Check to see what state the VM is currently in and remove that option
+
+    switch ($powerAction) {
+        "On" {
+            $powOut = Start-VM -VM $vname -Confirm:$false
+            Write-Host "$vname" -ForegroundColor Green -NoNewline
+            Write-Host " has been powered on."
+        }
+        "Off" {
+            $powOut = Stop-VM -VM $vname -Confirm:$false 
+            Write-Host "$vname" -ForegroundColor Green -NoNewline
+            Write-Host " has been powered off."
+        }
+    }
 }
