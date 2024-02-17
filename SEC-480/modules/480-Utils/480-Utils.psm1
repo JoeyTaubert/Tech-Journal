@@ -11,6 +11,7 @@ function 480Banner() {
 
 "@
     Write-Host $banner
+    Start-Sleep -Seconds 1
 }
 ### Usage: 480Connect -server (IP of ESXI)
 function 480Connect([string] $server) {
@@ -18,7 +19,8 @@ function 480Connect([string] $server) {
     $conn = $global:DefaultVIServer
 
     if ($conn){
-        Write-Host "Already connected to $conn"
+        Write-Host "Already connected to " -NoNewline
+        Write-Host "$conn" -ForegroundColor Green
     } else {
         # Connect if not already connected
         $conn = Connect-VIServer -Server $server
@@ -32,9 +34,10 @@ function Get-480Config([string] $config_path) {
     if (Test-Path $config_path) {
         # Get the config file and convert it so it is usable
         $conf = (Get-Content -Raw -Path $config_path | ConvertFrom-Json)
-        Write-Host "Using config file at $config_path"
+        Write-Host "Using config file at " -NoNewline
+        Write-Host "$config_path" -ForegroundColor Green
     } else {
-        Write-Host "Config file not found: $config_path"
+        Write-Host "Config file not found: $config_path" -ForegroundColor Red
     }
     return $conf
 }
@@ -164,7 +167,7 @@ function Select-480Datastore() {
 ### Usage: New-SnapshotFrom-Name -vmName (name of vm)
 function New-480SnapshotFrom-Name([string] $vmName) {
     $vm = Get-VM -name $vmName
-    $vm | New-Snapshot -Name "Base" 
+    $vm | New-Snapshot -Name "Base" | Out-Null # Out-Null discards standard output stream
 }
 
 ### Usage: Set-NetworkAdapters [-vname (VM Name) (OPTIONAL)]
@@ -242,6 +245,8 @@ function Set-480NetworkAdapters($vname) {
         Write-Host " as it is the only available adapter"
     }
 
+    # Check what the adapter is currently set to and provide that info // No error thrown if try to set to network it is already on
+
     $vNetworks = Get-VirtualNetwork | Select-Object -ExpandProperty "Name"
 
     Write-Host "`n"
@@ -266,10 +271,13 @@ function Set-480NetworkAdapters($vname) {
     Write-Host "$networkName" -ForegroundColor Green
 
     Write-Host "`n"
-    Write-Host "-=-=-= SUMMARY =-=-=-" -ForegroundColor Green
-    Write-Host "VM Name: $vname"
-    Write-Host "Adapter: $adapter"
-    Write-Host "Network: $networkName"
+    Write-Host "-=-=-= ADAPTER CHANGE SUMMARY =-=-=-" -ForegroundColor Green
+    Write-Host "VM Name: " -NoNewline
+    Write-Host "$vname" -ForegroundColor Green
+    Write-Host "Adapter: " -NoNewline
+    Write-Host "$adapter" -ForegroundColor Green
+    Write-Host "Network: " -NoNewline
+    Write-Host "$networkName" -ForegroundColor Green
 
     # Proceed?
 
@@ -308,11 +316,16 @@ function 480Cloner([string] $config_path) {
     # Summary & Confirm
     Write-Host "`n"
     Write-Host "-=-=-= LINKED VM SUMMARY =-=-=-" -ForegroundColor Green
-    Write-Host "Name: $linkedClone"
-    Write-Host "Base VM: $vm"
-    Write-Host "Ref Snapshot: $snapshot"
-    Write-Host "ESXi IP: $esxiIP"
-    Write-Host "Datastore: $datastore"
+    Write-Host "Name: " -NoNewline
+    Write-Host "$linkedClone" -ForegroundColor Green
+    Write-Host "Base VM: " -NoNewline
+    Write-Host "$vm" -ForegroundColor Green
+    Write-Host "Ref Snapshot: " -NoNewline
+    Write-Host "$snapshot" -ForegroundColor Green
+    Write-Host "ESXi IP: " -NoNewline
+    Write-Host "$esxiIP" -ForegroundColor Green
+    Write-Host "Datastore: " -NoNewline
+    Write-Host "$datastore" -ForegroundColor Green
 
     $allVMs = Get-VM | Select-Object -ExpandProperty Name
 
@@ -327,12 +340,14 @@ function 480Cloner([string] $config_path) {
     $c = Read-Host "Proceed with creation of linked clone? (y/n)" 
 
     if ($c -eq "y" -or $c -eq "Y") {
-        Write-Host "Proceeding with linked clone creation..."
+        Write-Host "Creating linked clone, " -NoNewline
+        Write-Host "$linkedClone" -ForegroundColor Green
     } else {
         Write-Host "Aborting..." -ForegroundColor Green
         exit #Maybe replace with a loop back to a main menu?
     }
 
+    Write-Host "`n"
 
     # Create linked clone
     $linkedvm = New-VM -LinkedClone -Name $linkedClone -VM $vm -ReferenceSnapshot $snapshot -VMHost $esxiIP -Datastore $datastore
@@ -360,12 +375,16 @@ function 480Cloner([string] $config_path) {
     
     $allVMs2 = Get-VM | Select-Object -ExpandProperty Name
 
+    Write-Host "`n"
+
     if ($allVMs2 -contains $newVmName) {
         Write-Host "Duplicate VM name. Exiting..." -ForegroundColor Red
         exit
     } else {
+        Write-Host "Creating new VM, " -NoNewline
+        Write-Host "$newVmName" -ForegroundColor Green
         # Create the new VM:
-        New-VM -Name $newVmName -VMHost $esxiIP -VM $linkedClone -Datastore $datastore
+        New-VM -Name $newVmName -VMHost $esxiIP -VM $linkedClone -Datastore $datastore | Out-Null # Out-Null discards standard output stream
     }
 
     # Grab a snapshot:
@@ -379,7 +398,9 @@ function 480Cloner([string] $config_path) {
 
     Write-Host "`n"
     # Network adapter change
-    $nchoice = Read-Host "Would you like to change the network adapter of $newVmName ? (y/n)"
+    Write-Host "Would you like to change the network adapter of " -NoNewline
+    Write-Host "$newVmName" -ForegroundColor Green -NoNewline
+    $nchoice = Read-Host "? (y/n)"
     
     if ($nchoice -eq "y" -or $nchoice -eq "Y") {
         Set-480NetworkAdapters($newVmName)
@@ -387,14 +408,17 @@ function 480Cloner([string] $config_path) {
 
     }
 
-    $powchoice = Read-Host "Would you like to power on $newVmName ? (y/n)"
+    Write-Host "`n"
+    Write-Host "Would you like to power on " -NoNewline
+    Write-Host "$newVmName" -ForegroundColor Green -NoNewline
+    $powchoice = Read-Host "? (y/n)"
 
     if ($powchoice -eq "y" -or $powchoice -eq "Y") {
         $powerAction = "On"
         480PowerToggle -vname $newVmName -powerAction $powerAction
     }
 
-    Write-Host "Exiting.." -ForegroundColor Green
+    Write-Host "Exiting..." -ForegroundColor Green
 }
 
 ### Usage: 480PowerToggle [-vname (VM Name) (OPTIONAL)] [-powerAction ("On"/"Off") (OPTIONAL)]
@@ -454,7 +478,7 @@ function 480PowerToggle() {
         }
     }
 
-    # Check to see what state the VM is currently in and remove that option
+    # Check to see what state the VM is currently in and remove that option to prevent error
 
     switch ($powerAction) {
         "On" {
