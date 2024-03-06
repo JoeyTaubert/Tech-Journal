@@ -542,3 +542,67 @@ function 480PowerToggle() {
     }
     $powOut | Out-Null
 }
+
+function Get-480IP {
+    $vms = Get-VM
+    $index = 1
+
+    Write-Host "`n"
+    Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
+    foreach($vm in $vms) {
+        Write-Host [$index] $vm.name
+        $index += 1
+    }
+    $pickindex = Read-Host "Index number of desired VM"
+    $selectedvm = $vms[$pickindex - 1]
+
+    # Input validation
+    if ($vms -contains $selectedvm) {
+
+    } else {
+        Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
+        exit
+    }
+
+    $selectedvmname = $selectedvm.name
+    Write-Host "You picked " -NoNewline
+    Write-Host "$selectedvmname" -ForegroundColor Green
+    Write-Host ""
+
+    $vmObj = Get-VM -Name $selectedvm.name
+
+    # ChatGPT helped me with this line
+    $macs = $vmObj | Get-NetworkAdapter | Select-Object -ExpandProperty MacAddress
+
+    foreach ($m in $macs) {
+        $mac = $m
+        break
+    }
+    
+    $ips = (Get-VM "$($selectedvm.name)" | Get-VMGuest).IPAddress
+
+    foreach ($i in $ips) {
+        $ip = $i
+        break
+    }
+
+    Write-Host "-=-=-= NETWORKING SUMMARY FOR $($selectedvm.name) =-=-=-" -ForegroundColor Green
+    Write-Host "MAC: " -NoNewline
+    Write-Host "$mac" -ForegroundColor Yellow
+    Write-Host "IP: " -NoNewline
+    Write-Host "$ip" -ForegroundColor Yellow
+}
+
+function New-480Network {
+    $nameInput = Read-Host "What would you like to name the virtual switch?"
+
+    New-VirtualSwitch -VMHost 192.168.7.27 -Name $nameInput
+
+    $portGroupInput = Read-Host "What would you like to name the associated port group? [$nameInput]"
+
+    if (-not $portGroupInput) {
+        $portGroupInput = $nameInput
+    }
+
+    New-VirtualPortGroup -VirtualSwitch $nameInput -Name $portGroupInput
+}
