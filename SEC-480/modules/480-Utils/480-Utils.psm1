@@ -62,7 +62,7 @@ function Select-480BaseVM([string] $folder) {
 
     } else {
         Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-        exit
+        return
     }
 
     $selectedvmname = $selectedvm.name
@@ -98,7 +98,7 @@ function Select-480BaseVMFolder() {
 
     } else {
         Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-        exit
+        return
     }
 
     return $folder
@@ -125,7 +125,7 @@ function Select-480Snapshot([VMware.VimAutomation.ViCore.Types.V1.Inventory.Virt
         Write-Host "$snapshotChoice" -ForegroundColor Green
     } else {
         Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-        exit
+        return
     }
 
     return $snapshotChoice
@@ -156,7 +156,7 @@ function Select-480Datastore() {
         return $ds
     } else {
         Write-Host "Invalid input. Goodbye..." -ForegroundColor Red
-        exit
+        return
     }
 }
 
@@ -207,7 +207,7 @@ function Set-480NetworkAdapters($vname) {
             Write-Host "$vname" -ForegroundColor Green
         } else {
             Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-            exit
+            return
         }
     }
 
@@ -240,7 +240,7 @@ function Set-480NetworkAdapters($vname) {
 
         } else {
             Write-Host "Bad index. Aborting..." -ForegroundColor Red
-            exit
+            return
         }
 
         $adapterPickIndex = [int]$adapterPickIndex
@@ -278,7 +278,7 @@ function Set-480NetworkAdapters($vname) {
 
     } else {
         Write-Host "Invalid index. Exiting..." -ForegroundColor Red
-        exit
+        return
     }
 
     $networkIndex = [int]$networkIndex - 1
@@ -357,7 +357,7 @@ function 480Cloner([string] $config_path) {
     if ($allVMs -contains $linkedClone) {
         # Maybe check this earlier on and automatically delete it?
         Write-Host "Temporary linked clone already exists. Please delete it and try again. Exiting..." -ForegroundColor Red
-        exit
+        return
     } else {
 
     }
@@ -370,7 +370,7 @@ function 480Cloner([string] $config_path) {
         Write-Host "$linkedClone" -ForegroundColor Green
     } else {
         Write-Host "Aborting..." -ForegroundColor Green
-        exit #Maybe replace with a loop back to a main menu?
+        return #Maybe replace with a loop back to a main menu?
     }
 
     Write-Host "`n"
@@ -387,7 +387,7 @@ function 480Cloner([string] $config_path) {
 
     } else {
         Write-Host "Exiting..." -ForegroundColor Green
-        exit
+        return
     }
 
     # Prompt OS name to build VM name with
@@ -411,7 +411,7 @@ function 480Cloner([string] $config_path) {
     if ($allVMs2 -contains $newVmName) {
         # If the name is a duplicate, exit
         Write-Host "Duplicate VM name. Exiting..." -ForegroundColor Red
-        exit
+        return
     } else {
         # If the name does not already exist, create the VM
         Write-Host "Creating new VM, " -NoNewline
@@ -493,7 +493,7 @@ function 480PowerToggle() {
 
         } else {
             Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-            exit
+            return
         }
 
         $vindex-=1
@@ -521,7 +521,7 @@ function 480PowerToggle() {
             $powerAction = "Off"
         } else {
             Write-Host "No valid selection. Exiting..." -ForegroundColor Red
-            exit
+            return
         }
     }
 
@@ -561,7 +561,7 @@ function Get-480IP {
 
     } else {
         Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-        exit
+        return
     }
 
     $selectedvmname = $selectedvm.name
@@ -594,15 +594,101 @@ function Get-480IP {
 }
 
 function New-480Network {
-    $nameInput = Read-Host "What would you like to name the virtual switch?"
+    $nameInput = Read-Host "Name of new vSwitch"
 
-    New-VirtualSwitch -VMHost 192.168.7.27 -Name $nameInput
+    $vSwitchOut = New-VirtualSwitch -VMHost 192.168.7.27 -Name $nameInput -ErrorAction Stop
 
+    Write-Host "Virtual switch, " -NoNewline
+    Write-Host "$($vSwitchOut.Name)" -ForegroundColor Green -NoNewline
+    Write-Host ", created"
+
+    Write-Host ""
     $portGroupInput = Read-Host "What would you like to name the associated port group? [$nameInput]"
 
+    # If no input provided, just use the name of the switch
     if (-not $portGroupInput) {
         $portGroupInput = $nameInput
     }
 
-    New-VirtualPortGroup -VirtualSwitch $nameInput -Name $portGroupInput
+    $portGroupOut = New-VirtualPortGroup -VirtualSwitch $nameInput -Name $portGroupInput -ErrorAction Stop
+
+    Write-Host "Virtual port group, " -NoNewline
+    Write-Host "$($portGroupOut.Name)" -ForegroundColor Green -NoNewline
+    Write-Host ", created. Exiting..."
+}
+
+function Remove-480Network([string]$vSwitchName) {
+
+    # If the parameter was not provided, prompt for a vSwitch 
+    if (-not $vSwitchName) {
+        Write-Host "-=-=-= vSwitch List =-=-=-" -ForegroundColor Green
+    
+        $switches = Get-VirtualSwitch
+    
+        $1 = 1
+    
+        foreach ($switch in $switches) {
+            Write-Host "$($1). $($switch.Name)"
+            $1 += 1
+        }
+
+        $vSwitchIndex = Read-Host "Index of vSwitch to remove"
+
+        # Grabbing the vSwitch object and input validation
+
+       
+        $1 -= 1
+
+        if ($vSwitchIndex -gt 0 -and $vSwitchIndex -le $1) {
+               $vSwitchIndex = [int]$vSwitchIndex - 1
+               $vSwitch = $switches[$vSwitchIndex]
+            } else {
+               Write-Host "Invalid index, exiting..." -ForegroundColor Red
+               return
+            }
+
+    $vSwitchName = $vSwitch.Name
+    }
+    
+    # ChatGPT helped me come up with this logic
+    # Remove the selected virtual switch
+    Get-VirtualSwitch -VMHost 192.168.7.27 -Name $vSwitchName | Remove-VirtualSwitch -Confirm:$false -ErrorAction Stop
+
+    Write-Host "vSwitch, " -NoNewline
+    Write-Host "$vSwitchName" -ForegroundColor Green -NoNewline
+    Write-Host ", removed. Exiting..."
+}
+
+function 480Network {
+    Write-Host "-=-=-= 480Network Functions =-=-=-" -ForegroundColor Green
+    Write-Host "1. " -NoNewline
+    Write-Host "New-480Network" -ForegroundColor Yellow -NoNewline
+    Write-Host " - Create a new vSwitch and port group"
+    Write-Host "2. " -NoNewline
+    Write-Host "Remove-480Network" -ForegroundColor Yellow -NoNewline
+    Write-Host " - Remove a vSwitch and its port group"
+    Write-Host "3. " -NoNewline
+    Write-host "Exit" -ForegroundColor Yellow
+    $input = Read-Host "Index of function to use"
+
+    Write-Host ""
+
+    switch([int]$input) {
+        1 {
+            New-480Network
+        }
+
+        2 {
+            Remove-480Network
+        }
+        3 {
+            Write-Host "Exiting..." -ForegroundColor Green
+            return
+        }
+        # Learned about this from ChatGPT
+        default {
+            Write-Host "Invalid index. Exiting..." -ForegroundColor Red
+            return
+        }
+    }
 }
