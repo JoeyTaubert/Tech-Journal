@@ -378,7 +378,6 @@ function 480Cloner([string] $config_path) {
     # Create linked clone
     $linkedvm = New-VM -LinkedClone -Name $linkedClone -VM $vm -ReferenceSnapshot $snapshot -VMHost $esxiIP -Datastore $datastore
     
-    
     # Prompt for full clone creation
     $d = Read-Host "Proceed with full clone creation? (y/n)"
 
@@ -386,8 +385,18 @@ function 480Cloner([string] $config_path) {
     if ($d -eq "y" -or $d -eq "Y") {
 
     } else {
-        Write-Host "Exiting..." -ForegroundColor Green
-        return
+        Write-Host ""
+        $renameLinkedInput = Read-Host "Would you like to rename the linked VM? (y/n)"
+
+        if ($renameLinkedInput -eq "y" -or $renameLinkedInput -eq "Y") {
+            Write-Host ""
+            $newName = Read-Host "New name of linked clone"
+            Set-VM -VM $linkedClone -Name $newName -Confirm:$false
+            return
+        } else {
+            Write-Host "Linked clone complete. Exiting..." -ForegroundColor Green
+            return
+        }
     }
 
     # Prompt OS name to build VM name with
@@ -432,16 +441,29 @@ function 480Cloner([string] $config_path) {
 
     Write-Host "`n"
     # Prompt network adapter change
-    Write-Host "Would you like to change the network adapter of " -NoNewline
+
+    Write-Host "Would you like to change a network adapter of " -NoNewline
     Write-Host "$newVmName" -ForegroundColor Green -NoNewline
     $nchoice = Read-Host "? (y/n)"
-    
+
     # If yes, start Set-480NetworkAdapters with parameter
     if ($nchoice -eq "y" -or $nchoice -eq "Y") {
         Set-480NetworkAdapters($newVmName)
+        $adapterCheck = 0
+        while ($adapterCheck -eq 0) {
+            Write-Host "Would you like to change another network adapter of " -NoNewline
+            Write-Host "$newVmName" -ForegroundColor Green -NoNewline
+            $mchoice = Read-Host "? (y/n)"
+            if ($mchoice -eq "y" -or $mchoice -eq "Y") {    
+                Set-480NetworkAdapters($newVmName)
+            } else {
+                $adapterCheck += 1
+            }
+        }
     } else {
-
+        # Continue
     }
+    
 
     # Prompt to power on
     Write-Host "`n"
@@ -550,14 +572,15 @@ function Get-480IP {
     Write-Host "`n"
     Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
     foreach($vm in $vms) {
-        Write-Host [$index] $vm.name
+        Write-Host "$($index). $($vm.name)"
         $index += 1
     }
-    $pickindex = Read-Host "Index number of desired VM"
+    [int]$pickindex = Read-Host "Index number of desired VM"
     $selectedvm = $vms[$pickindex - 1]
 
+    $index -= 1
     # Input validation
-    if ($vms -contains $selectedvm) {
+    if ($pickindex -ge 1 -and $pickindex -le $index) {
 
     } else {
         Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
@@ -574,23 +597,46 @@ function Get-480IP {
     # ChatGPT helped me with this line
     $macs = $vmObj | Get-NetworkAdapter | Select-Object -ExpandProperty MacAddress
 
-    foreach ($m in $macs) {
-        $mac = $m
-        break
+    Write-Host "-=-=-= NETWORKING SUMMARY FOR $($selectedvm.name) =-=-=-" -ForegroundColor Green
+
+    if ($macs -is [string]) {
+        Write-Host "MAC (Net Ad1): " -NoNewline
+        Write-Host "$macs" -ForegroundColor Yellow
+    } elseif ($macs -is [array]) {
+        $2 = 1
+        foreach ($mac in $macs) {
+            Write-Host "MAC (Net Ad$($2)): " -NoNewline
+            Write-Host "$mac" -ForegroundColor Yellow
+            $2 += 1
+        }
+    } else {
+        Write-Host "MAC list of incorrect type. Exiting..." -ForegroundColor Red
+        return
     }
     
     $ips = (Get-VM "$($selectedvm.name)" | Get-VMGuest).IPAddress
 
-    foreach ($i in $ips) {
-        $ip = $i
-        break
+    if (-not $ips) {
+        $ips = "VMWare Tools missing or VM powered off"
+    } 
+
+    $newIps = New-Object System.Collections.ArrayList
+
+    # ChatGPT helped me with filtering out IPv6 addresses
+    $newIps = $ips | Where-Object { -not ($_ -match ":") }
+
+    if ($newIps.Count -eq 1) {
+        Write-Host "IP (Net Ad1): " -NoNewline
+        Write-Host "$newIps" -ForegroundColor Yellow
+    } else {
+        $3 = 1
+        foreach ($address in $newIps) {
+            Write-Host "IP (Net Ad$($3)): " -NoNewline
+            Write-Host "$address" -ForegroundColor Yellow
+            $3 += 1
+        }
     }
 
-    Write-Host "-=-=-= NETWORKING SUMMARY FOR $($selectedvm.name) =-=-=-" -ForegroundColor Green
-    Write-Host "MAC: " -NoNewline
-    Write-Host "$mac" -ForegroundColor Yellow
-    Write-Host "IP: " -NoNewline
-    Write-Host "$ip" -ForegroundColor Yellow
 }
 
 function New-480Network {
@@ -668,7 +714,7 @@ function 480Network {
     Write-Host "Remove-480Network" -ForegroundColor Yellow -NoNewline
     Write-Host " - Remove a vSwitch and its port group"
     Write-Host "3. " -NoNewline
-    Write-host "Exit" -ForegroundColor Yellow
+    Write-host "Exit" -ForegroundColor Red
     $input = Read-Host "Index of function to use"
 
     Write-Host ""
@@ -688,6 +734,63 @@ function 480Network {
         # Learned about this from ChatGPT
         default {
             Write-Host "Invalid index. Exiting..." -ForegroundColor Red
+            return
+        }
+    }
+}
+
+function 480Utils {
+    480Banner
+    
+    480Connect -server "vcenter.joey.local"
+
+    Write-Host ""
+    Write-Host "-=-=-= 480-Utils Functions =-=-=-" -ForegroundColor Green
+    Write-Host "1. " -NoNewline
+    Write-Host "480Cloner" -ForegroundColor Yellow -NoNewline
+    Write-Host " - Creates a linked/full clone"
+    Write-Host "2. " -NoNewline
+    Write-Host "480Network" -ForegroundColor Yellow -NoNewline
+    Write-Host " - Edit networking for VMs"
+    Write-Host "3. " -NoNewline
+    Write-Host "480PowerToggle" -ForegroundColor Yellow -NoNewline
+    Write-Host " - Turn a VM ON or OFF"
+    Write-Host "4. " -NoNewline
+    Write-Host "Get-480IP" -ForegroundColor Yellow -NoNewline
+    Write-Host " - Get MACs and IPs for a VM"
+    Write-Host "5. " -NoNewline
+    Write-Host "New-480SnapshotFrom-Name" -ForegroundColor Yellow -NoNewline
+    Write-Host " - Grab a snapshot of a VM"
+    Write-Host "6. " -NoNewline
+    Write-Host "Exit" -ForegroundColor Red
+
+    Write-Host ""
+    [int]$pick = Read-Host "What would you like to do?"
+
+    Write-Host ""
+
+    switch($pick) {
+        1 {
+            480Cloner -config_path /home/joey/Tech-Journal/SEC-480/modules/480-Utils/480.json 
+        }
+        2 {
+            480Network
+        }
+        3 {
+            480PowerToggle
+        }
+        4 {
+            Get-480IP
+        }
+        5 {
+            New-480SnapshotFrom-Name
+        }
+        6 { 
+            Write-Host "Exiting..." -ForegroundColor Green
+            return
+        }
+        default {
+            Write-Host "Invalid input. Exiting..." -ForegroundColor Red
             return
         }
     }
