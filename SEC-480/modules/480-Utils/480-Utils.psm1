@@ -527,27 +527,81 @@ function 480PowerToggle() {
 
     }
 
-    # If $powerAction was not supplied, prompt for a choice
-    if (-not $powerAction) {
-        Write-Host "`n"
-        Write-Host "-=-=-= ACTIONS =-=-=-" -ForegroundColor Green
-        Write-Host "1. Power On"
-        Write-Host "2. Power Off"
-    
-        $actionChoice = Read-Host "What number action would you like to take?"
-        
-        # Based on choice, set $actionChoice to "On" or "Off"
-        if ($actionChoice -eq "1") {
-            $powerAction = "On"
-        } elseif ($actionChoice -eq "2") {
-            $powerAction = "Off"
-        } else {
-            Write-Host "No valid selection. Exiting..." -ForegroundColor Red
+    # Check current power state of VM
+    $currentState = Get-VM -Name "$vname" | Select-Object -ExpandProperty PowerState
+
+    switch ($currentState) {
+        "PoweredOn" {
+            $powerStr = "powered on"
+
+            # Display power state
+            Write-Host ""
+            Write-Host "$vname" -ForegroundColor Green -NoNewline
+            Write-Host " is currently " -NoNewline
+            Write-Host "$($powerStr)" -ForegroundColor Green -NoNewline
+            Write-Host "."
+
+            Write-Host "Would you like to power off " -NoNewline
+            Write-Host "$($vname)" -ForegroundColor Green -NoNewline
+            $powchoice2 = Read-Host "? (y/n)"
+
+            if ($powchoice2 -eq "y" -or $powchoice2 -eq "Y"){
+                $powerAction = "Off"
+            } else {
+                Write-Host "Aborting..." -ForegroundColor Red
+                return
+            }
+
+        }
+        "PoweredOff" {
+            $powerStr = "powered off"
+
+            # Display power state
+            Write-Host ""
+            Write-Host "$vname" -ForegroundColor Green -NoNewline
+            Write-Host " is currently " -NoNewline
+            Write-Host "$($powerStr)" -ForegroundColor Red -NoNewline
+            Write-Host "."
+
+            Write-Host "Would you like to power on " -NoNewline
+            Write-Host "$($vname)" -ForegroundColor Green -NoNewline
+            $powchoice2 = Read-Host "? (y/n)"
+
+            if ($powchoice2 -eq "y" -or $powchoice2 -eq "Y"){
+                $powerAction = "On"
+            } else {
+                Write-Host "Aborting..." -ForegroundColor Red
+                return
+            }
+
+        }
+        default {
+            Write-Host "Error, cannot get VM state. Exiting..." -ForegroundColor Red
             return
         }
     }
 
-    # Check to see what state the VM is currently in and remove that option to prevent error
+
+    # Old workflow if the command was used without params
+    ## If $powerAction was not supplied, prompt for a choice
+    #if (-not $powerAction) {
+    #    Write-Host "`n"
+    #    Write-Host "-=-=-= ACTIONS =-=-=-" -ForegroundColor Green
+    #    Write-Host "1. Power On"
+    #    Write-Host "2. Power Off"
+    #
+    #    $actionChoice = Read-Host "What number action would you like to take?"
+    #    
+    #    # Based on choice, set $actionChoice to "On" or "Off"
+    #    if ($actionChoice -eq "1") {
+    #        $powerAction = "On"
+    #    } elseif ($actionChoice -eq "2") {
+    #        $powerAction = "Off"
+    #    } else {
+    #        Write-Host "No valid selection. Exiting..." -ForegroundColor Red
+    #        return
+    #    }
+    #}
 
     # ChatGPT recommended this switch statement, which I thought was very nifty. I find it similar to a 'match' statement in Rust
     switch ($powerAction) {
@@ -744,54 +798,61 @@ function 480Utils {
     
     480Connect -server "vcenter.joey.local"
 
-    Write-Host ""
-    Write-Host "-=-=-= 480-Utils Functions =-=-=-" -ForegroundColor Green
-    Write-Host "1. " -NoNewline
-    Write-Host "480Cloner" -ForegroundColor Yellow -NoNewline
-    Write-Host " - Creates a linked/full clone"
-    Write-Host "2. " -NoNewline
-    Write-Host "480Network" -ForegroundColor Yellow -NoNewline
-    Write-Host " - Edit networking for VMs"
-    Write-Host "3. " -NoNewline
-    Write-Host "480PowerToggle" -ForegroundColor Yellow -NoNewline
-    Write-Host " - Turn a VM ON or OFF"
-    Write-Host "4. " -NoNewline
-    Write-Host "Get-480IP" -ForegroundColor Yellow -NoNewline
-    Write-Host " - Get MACs and IPs for a VM"
-    Write-Host "5. " -NoNewline
-    Write-Host "New-480SnapshotFrom-Name" -ForegroundColor Yellow -NoNewline
-    Write-Host " - Grab a snapshot of a VM"
-    Write-Host "6. " -NoNewline
-    Write-Host "Exit" -ForegroundColor Red
+    $end = $false
 
-    Write-Host ""
-    [int]$pick = Read-Host "What would you like to do?"
+    while ($end -eq $false) {
 
-    Write-Host ""
+        Write-Host ""
+        Write-Host "-=-=-= 480-Utils Functions =-=-=-" -ForegroundColor Green
+        Write-Host "1. " -NoNewline
+        Write-Host "480Cloner" -ForegroundColor Yellow -NoNewline
+        Write-Host " - Creates a linked/full clone"
+        Write-Host "2. " -NoNewline
+        Write-Host "480Network" -ForegroundColor Yellow -NoNewline
+        Write-Host " - Edit networking for VMs"
+        Write-Host "3. " -NoNewline
+        Write-Host "480PowerToggle" -ForegroundColor Yellow -NoNewline
+        Write-Host " - Turn a VM ON or OFF"
+        Write-Host "4. " -NoNewline
+        Write-Host "Get-480IP" -ForegroundColor Yellow -NoNewline
+        Write-Host " - Get MACs and IPs for a VM"
+        Write-Host "5. " -NoNewline
+        Write-Host "New-480SnapshotFrom-Name" -ForegroundColor Yellow -NoNewline
+        Write-Host " - Grab a snapshot of a VM"
+        Write-Host "6. " -NoNewline
+        Write-Host "Exit" -ForegroundColor Red
 
-    switch($pick) {
-        1 {
-            480Cloner -config_path /home/joey/Tech-Journal/SEC-480/modules/480-Utils/480.json 
-        }
-        2 {
-            480Network
-        }
-        3 {
-            480PowerToggle
-        }
-        4 {
-            Get-480IP
-        }
-        5 {
-            New-480SnapshotFrom-Name
-        }
-        6 { 
-            Write-Host "Exiting..." -ForegroundColor Green
-            return
-        }
-        default {
-            Write-Host "Invalid input. Exiting..." -ForegroundColor Red
-            return
+        Write-Host ""
+        [int]$pick = Read-Host "What would you like to do?"
+
+        Write-Host ""
+
+        switch($pick) {
+            1 {
+                480Cloner -config_path /home/joey/Tech-Journal/SEC-480/modules/480-Utils/480.json 
+            }
+            2 {
+                480Network
+            }
+            3 {
+                480PowerToggle
+            }
+            4 {
+                Get-480IP
+            }
+            5 {
+                New-480SnapshotFrom-Name
+            }
+            6 { 
+                $end = $true
+                Write-Host "Exiting..." -ForegroundColor Green
+                return
+            }
+            default {
+                $end = $true
+                Write-Host "Invalid input. Exiting..." -ForegroundColor Red
+                return
+            }
         }
     }
 }
