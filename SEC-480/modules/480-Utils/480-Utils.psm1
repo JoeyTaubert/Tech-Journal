@@ -527,60 +527,61 @@ function 480PowerToggle() {
 
     }
 
-    # Check current power state of VM
-    $currentState = Get-VM -Name "$vname" | Select-Object -ExpandProperty PowerState
+    if (-not $powerAction){
+        # Check current power state of VM
+        $currentState = Get-VM -Name "$vname" | Select-Object -ExpandProperty PowerState
 
-    switch ($currentState) {
-        "PoweredOn" {
-            $powerStr = "powered on"
+        switch ($currentState) {
+            "PoweredOn" {
+                $powerStr = "powered on"
 
-            # Display power state
-            Write-Host ""
-            Write-Host "$vname" -ForegroundColor Green -NoNewline
-            Write-Host " is currently " -NoNewline
-            Write-Host "$($powerStr)" -ForegroundColor Green -NoNewline
-            Write-Host "."
+                # Display power state
+                Write-Host ""
+                Write-Host "$vname" -ForegroundColor Green -NoNewline
+                Write-Host " is currently " -NoNewline
+                Write-Host "$($powerStr)" -ForegroundColor Green -NoNewline
+                Write-Host "."
 
-            Write-Host "Would you like to power off " -NoNewline
-            Write-Host "$($vname)" -ForegroundColor Green -NoNewline
-            $powchoice2 = Read-Host "? (y/n)"
+                Write-Host "Would you like to power off " -NoNewline
+                Write-Host "$($vname)" -ForegroundColor Green -NoNewline
+                $powchoice2 = Read-Host "? (y/n)"
 
-            if ($powchoice2 -eq "y" -or $powchoice2 -eq "Y"){
-                $powerAction = "Off"
-            } else {
-                Write-Host "Aborting..." -ForegroundColor Red
+                if ($powchoice2 -eq "y" -or $powchoice2 -eq "Y"){
+                    $powerAction = "Off"
+                } else {
+                    Write-Host "Aborting..." -ForegroundColor Red
+                    return
+                }
+
+            }
+            "PoweredOff" {
+                $powerStr = "powered off"
+
+                # Display power state
+                Write-Host ""
+                Write-Host "$vname" -ForegroundColor Green -NoNewline
+                Write-Host " is currently " -NoNewline
+                Write-Host "$($powerStr)" -ForegroundColor Red -NoNewline
+                Write-Host "."
+
+                Write-Host "Would you like to power on " -NoNewline
+                Write-Host "$($vname)" -ForegroundColor Green -NoNewline
+                $powchoice2 = Read-Host "? (y/n)"
+
+                if ($powchoice2 -eq "y" -or $powchoice2 -eq "Y"){
+                    $powerAction = "On"
+                } else {
+                    Write-Host "Aborting..." -ForegroundColor Red
+                    return
+                }
+
+            }
+            default {
+                Write-Host "Error, cannot get VM state. Exiting..." -ForegroundColor Red
                 return
             }
-
-        }
-        "PoweredOff" {
-            $powerStr = "powered off"
-
-            # Display power state
-            Write-Host ""
-            Write-Host "$vname" -ForegroundColor Green -NoNewline
-            Write-Host " is currently " -NoNewline
-            Write-Host "$($powerStr)" -ForegroundColor Red -NoNewline
-            Write-Host "."
-
-            Write-Host "Would you like to power on " -NoNewline
-            Write-Host "$($vname)" -ForegroundColor Green -NoNewline
-            $powchoice2 = Read-Host "? (y/n)"
-
-            if ($powchoice2 -eq "y" -or $powchoice2 -eq "Y"){
-                $powerAction = "On"
-            } else {
-                Write-Host "Aborting..." -ForegroundColor Red
-                return
-            }
-
-        }
-        default {
-            Write-Host "Error, cannot get VM state. Exiting..." -ForegroundColor Red
-            return
         }
     }
-
 
     # Old workflow if the command was used without params
     ## If $powerAction was not supplied, prompt for a choice
@@ -603,6 +604,7 @@ function 480PowerToggle() {
     #    }
     #}
 
+    # I need to handle if a powerAction parameter is specified to the power state the VM is already in.
     # ChatGPT recommended this switch statement, which I thought was very nifty. I find it similar to a 'match' statement in Rust
     switch ($powerAction) {
         "On" {
