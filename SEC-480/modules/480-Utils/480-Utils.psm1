@@ -162,6 +162,39 @@ function Select-480Datastore() {
 
 ### Usage: New-SnapshotFrom-Name -vmName (name of vm)
 function New-480SnapshotFrom-Name([string] $vmName) {
+    
+    if (-not $vmName) {
+        $vmlist = Get-VM | Select-Object -ExpandProperty Name
+
+        Write-Host "`n"
+        Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
+        $1 = 1
+        foreach ($vm in $vmlist) {
+            Write-Host "$1. $vm"
+            $1+=1
+        }
+
+        $1-=1
+
+        $vindex = Read-Host "Index of VM to grab snapshot of"
+
+    
+        # Input validation
+        if ([int]$vindex -le [int]$1 -and [int]$vindex -ge 1) {
+
+        } else {
+            Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
+            return
+        }
+
+        $vindex-=1
+        $vindex = [int]$vindex
+        $vmName = $vmlist[$vindex]
+
+        Write-Host "You picked " -NoNewline
+        Write-Host "$vmName" -ForegroundColor Green
+    }
+    
     $vm = Get-VM -name $vmName
 
     $defaultSnapName = "Base"
