@@ -7,7 +7,7 @@
       commands: show version
     register: version
   - debug: 
-    var: version_stdout_lines
+      var: version_stdout_lines
 
   - name: configure vyos dhcp
     vyos_config: 
