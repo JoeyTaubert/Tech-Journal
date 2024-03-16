@@ -71,6 +71,40 @@ function Select-480BaseVM([string] $folder) {
     return $selectedvm
 }
 
+function Select-480BaseVMName {
+    $folder = Select-480BaseVMFolder
+
+    $vmlist = Get-VM -Location $folder | Select-Object -ExpandProperty Name
+
+    Write-Host "`n"
+    Write-Host "-=-=-= AVAILABLE VMs IN $folder =-=-=-" -ForegroundColor Green
+    $1 = 1
+    foreach ($vm in $vmlist) {
+        Write-Host "$1. $vm"
+        $1+=1
+    }
+
+    $1-=1
+
+    $vindex = Read-Host "Index of VM to make network adapter change to"
+
+    # Input validation
+    if ([int]$vindex -le $1 -and [int]$vindex -ge 1) {
+        $vindex = [int]$vindex
+        $vindex-=1
+        $vname = $vmlist[$vindex]
+        Write-Host "You picked " -NoNewline
+        Write-Host "$vname" -ForegroundColor Green
+
+        return $vname #Returns a vm name as string
+
+    } else {
+        Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
+        return
+    }
+    
+}
+
 function Select-480BaseVMFolder() {
     # Get all available VM folders and then list them
     $availableFolders = Get-Folder -Type VM | Where-Object { $_.Name -ne 'vm' } | Select-Object -ExpandProperty Name
@@ -162,39 +196,11 @@ function Select-480Datastore() {
 
 ### Usage: New-SnapshotFrom-Name -vmName (name of vm)
 function New-480SnapshotFrom-Name([string] $vmName) {
-    
+
     if (-not $vmName) {
-        $vmlist = Get-VM | Select-Object -ExpandProperty Name
-
-        Write-Host "`n"
-        Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
-        $1 = 1
-        foreach ($vm in $vmlist) {
-            Write-Host "$1. $vm"
-            $1+=1
-        }
-
-        $1-=1
-
-        $vindex = Read-Host "Index of VM to grab snapshot of"
-
-    
-        # Input validation
-        if ([int]$vindex -le [int]$1 -and [int]$vindex -ge 1) {
-
-        } else {
-            Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-            return
-        }
-
-        $vindex-=1
-        $vindex = [int]$vindex
-        $vmName = $vmlist[$vindex]
-
-        Write-Host "You picked " -NoNewline
-        Write-Host "$vmName" -ForegroundColor Green
+        $vmName = Select-480BaseVMName
     }
-    
+
     $vm = Get-VM -name $vmName
 
     $defaultSnapName = "Base"
@@ -217,31 +223,7 @@ function Set-480NetworkAdapters($vname) {
         Write-Host "$vname" -ForegroundColor Green
     # If no parameter was provided, get the desired VM
     } else {
-        $vmlist = Get-VM | Select-Object -ExpandProperty Name
-
-        Write-Host "`n"
-        Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
-        $1 = 1
-        foreach ($vm in $vmlist) {
-            Write-Host "$1. $vm"
-            $1+=1
-        }
-
-        $1-=1
-
-        $vindex = Read-Host "Index of VM to make network adapter change to"
-
-        # Input validation
-        if ([int]$vindex -le $1 -and [int]$vindex -ge 1) {
-            $vindex = [int]$vindex
-            $vindex-=1
-            $vname = $vmlist[$vindex]
-            Write-Host "You picked " -NoNewline
-            Write-Host "$vname" -ForegroundColor Green
-        } else {
-            Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-            return
-        }
+        $vname = Select-480BaseVMName
     }
 
 
@@ -528,10 +510,12 @@ function 480PowerToggle() {
         Write-Host "$vname" -ForegroundColor Green
     # If no parameter was provided, get the desired VM
     } else {
-        $vmlist = Get-VM | Select-Object -ExpandProperty Name
+        $folder = Select-480BaseVMFolder
+
+        $vmlist = Get-VM -Location $folder | Select-Object -ExpandProperty Name
 
         Write-Host "`n"
-        Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
+        Write-Host "-=-=-= AVAILABLE VMs IN $folder =-=-=-" -ForegroundColor Green
         $1 = 1
         foreach ($vm in $vmlist) {
             Write-Host "$1. $vm"
@@ -655,33 +639,9 @@ function 480PowerToggle() {
 }
 
 function Get-480IP {
-    $vms = Get-VM
-    $index = 1
+    $selectedvmname = Select-480BaseVMName
 
-    Write-Host "`n"
-    Write-Host "-=-=-= AVAILABLE VMs =-=-=-" -ForegroundColor Green
-    foreach($vm in $vms) {
-        Write-Host "$($index). $($vm.name)"
-        $index += 1
-    }
-    [int]$pickindex = Read-Host "Index number of desired VM"
-    $selectedvm = $vms[$pickindex - 1]
-
-    $index -= 1
-    # Input validation
-    if ($pickindex -ge 1 -and $pickindex -le $index) {
-
-    } else {
-        Write-Host "Invalid index. Goodbye..." -ForegroundColor Red
-        return
-    }
-
-    $selectedvmname = $selectedvm.name
-    Write-Host "You picked " -NoNewline
-    Write-Host "$selectedvmname" -ForegroundColor Green
-    Write-Host ""
-
-    $vmObj = Get-VM -Name $selectedvm.name
+    $vmObj = Get-VM -Name $selectedvmname
 
     # ChatGPT helped me with this line
     $macs = $vmObj | Get-NetworkAdapter | Select-Object -ExpandProperty MacAddress
@@ -844,7 +804,7 @@ function 480Utils {
         Write-Host " - Creates a linked/full clone"
         Write-Host "2. " -NoNewline
         Write-Host "480Network" -ForegroundColor Yellow -NoNewline
-        Write-Host " - Edit networking for VMs"
+        Write-Host " - Add or remove vSwitches/Port Groups"
         Write-Host "3. " -NoNewline
         Write-Host "480PowerToggle" -ForegroundColor Yellow -NoNewline
         Write-Host " - Turn a VM ON or OFF"
@@ -855,6 +815,9 @@ function 480Utils {
         Write-Host "New-480SnapshotFrom-Name" -ForegroundColor Yellow -NoNewline
         Write-Host " - Grab a snapshot of a VM"
         Write-Host "6. " -NoNewline
+        Write-Host "Set-480NetworkAdapters" -ForegroundColor Yellow -NoNewline
+        Write-Host " - Change what network an adapter is set to"
+        Write-Host "7. " -NoNewline
         Write-Host "Exit" -ForegroundColor Red
 
         Write-Host ""
@@ -879,6 +842,9 @@ function 480Utils {
                 New-480SnapshotFrom-Name
             }
             6 { 
+                Set-480NetworkAdapters
+            }
+            7 {
                 $end = $true
                 Write-Host "Exiting..." -ForegroundColor Green
                 return
