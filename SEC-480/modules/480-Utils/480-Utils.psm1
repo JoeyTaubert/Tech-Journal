@@ -646,7 +646,7 @@ function Get-480IP {
     # ChatGPT helped me with this line
     $macs = $vmObj | Get-NetworkAdapter | Select-Object -ExpandProperty MacAddress
 
-    Write-Host "-=-=-= NETWORKING SUMMARY FOR $($selectedvm.name) =-=-=-" -ForegroundColor Green
+    Write-Host "-=-=-= NETWORKING SUMMARY FOR $($selectedvmname) =-=-=-" -ForegroundColor Green
 
     if ($macs -is [string]) {
         Write-Host "MAC (Net Ad1): " -NoNewline
@@ -663,7 +663,7 @@ function Get-480IP {
         return
     }
     
-    $ips = (Get-VM "$($selectedvm.name)" | Get-VMGuest).IPAddress
+    $ips = (Get-VM "$($selectedvmname)" | Get-VMGuest).IPAddress
 
     if (-not $ips) {
         $ips = "VMWare Tools missing or VM powered off"
