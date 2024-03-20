@@ -11,7 +11,7 @@
       ansible.builtin.user:
         name: deployer
         state: present
-        create_homne: yes
+        create_home: yes
         groups: sudo
         append: yes
     - name: create the .ssh directory if it is not there
