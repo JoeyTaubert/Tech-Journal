@@ -7,16 +7,9 @@
 - name: rocky config
   hosts: rocky
   tasks:
-    - name: create the deployer user if not present
-      ansible.builtin.user:
-        name: deployer
-        state: present
-        create_home: yes
-        groups: sudo
-        append: yes
     - name: create the .ssh directory if it is not there
       file: 
-        path: "/home/{{ ansible_uer }}/.ssh"
+        path: "/home/{{ ansible_user }}/.ssh"
         state: directory
         mode: 0700
     - name: create authorized_keys file

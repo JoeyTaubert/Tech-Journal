@@ -1,0 +1,21 @@
+linux: 
+  hosts: 
+    children: 
+      ubuntu: 
+        hosts:
+          10.0.5.75:
+            hostname: ubuntu-1
+            lan_ip: 10.0.5.30
+          10.0.5.76:
+            hostname: ubuntu-2
+            lan_ip: 10.0.5.31
+        vars:
+          device: ens34
+  
+  vars:
+    public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDDKhuf4UrbitbouIWNXJJYAUz4k5alvmwx70MMQ+/gj7fTR3yI/5dhTf6u/QC+tkV6jUSBSLc3pDpfLAw0qQh+pRUt0pvXJpmtd/BhblLjHjnsvVevLAf1CUKKyDN1bKhRf1v9COEQ1BySSoJathV8jFUWnreeXV2GKGjxWabP0c8DGC2OzdA5XUqbxU3ZkjsliHFWxoGfqLVl5JhLQZOhrlLRNPyZOJkT/HKMbfBZOhWFsGvUcll3SHoI88xMHFFtjyv3ZsuDUQuE71PaAkAkBCdte9yk+piBiOczmrViIw4fkLY9MD0XUHDWlsP3l1Oll3oMDu2e2Z6XtuLO+oLTBEj+K3FZD8HmSEu6IxU6NnLB8JmiFDvEVx+O7efrYm2q+AOYvSKZ1uREHchu7Ytova4ebpr19m36ijejKAAgUN63/ffKc26vftUq7e2Yh+2WNREHyggds4EA8M27dLSEyPlDp/eQ2FuEH6pgLTHFAd8uPEDESQXAzYKMFlw46RU= joey@xubuntu-480"
+    ansible_user: deployer
+    prefix: 24
+    gateway: 10.0.5.2
+    name_server: 10.0.5.5
+    domain: blue1.local

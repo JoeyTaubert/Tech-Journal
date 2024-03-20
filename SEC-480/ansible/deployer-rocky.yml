@@ -1,0 +1,21 @@
+#deploy deployer on Rocky
+- name: deploy deployer
+  hosts: rocky
+  vars_prompt:
+
+  - name: password
+    prompt: enter your new vyos password
+    private: true
+
+  tasks:
+    - name: set the password hash fact
+      set_fact:
+        password_hash: "{{ password | password_hash('sha512') }}"
+    - name: create the deployer user if not present
+      ansible.builtin.user:
+        name: deployer
+        state: present
+        create_home: yes
+        groups: sudo
+        append: yes
+        password: "{{ password_hash }}"
