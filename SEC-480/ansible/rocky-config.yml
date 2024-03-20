@@ -1,0 +1,62 @@
+# This playbook configures Rocky Linux machines with:
+# - A public key for deployer user
+# - Drops a sudoers file for no password elevation to root by deployer
+# - Change the hostname
+# - Change the dhcp IP to static
+# Provided by Devin, with minor edits from Joey
+- name: rocky config
+  hosts: rocky
+  tasks:
+    - name: create the deployer user if not present
+      ansible.builtin.user:
+        name: deployer
+        state: present
+        create_homne: yes
+        groups: sudo
+        append: yes
+    - name: create the .ssh directory if it is not there
+      file: 
+        path: "/home/{{ ansible_uer }}/.ssh"
+        state: directory
+        mode: 0700
+    - name: create authorized_keys file
+      file:
+        path: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+        state: touch
+        mode: 0644
+    - name: copy over key block and append to authorized_keys
+      blockinfile:
+        dest: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+        block: "{{ public_key }}"
+
+    - name: create sudoers dropin file for 480
+      file: 
+        path: /etc/sudoers.d/480
+        state: touch
+        mode: 0440
+      become: yes
+
+    - name: set the hostname
+      hostname: 
+        name: "{{ hostname }}"
+      become: yes
+
+    - name: run nmcli
+    #nmcli connection modify ens192 ipv4.address 10.0.5.10/24 ipv4.gateway 10.0.5.2 ipv4.dns '10.0.5.5 10.0.5.2' ipv4.method manual
+      nmcli:
+        conn_name: "{{device}}"
+        ip4: "{{lan_ip}}/24"
+        gw4: "{{gateway}}"
+        state: present
+        type: ethernet
+        dns4:
+          - "{{name_server}}"
+          - "{{gateway}}"
+        method4: manual
+      become: yes
+
+    - name: bounce the box
+      shell: "sleep 5 && shutdown -r"
+      become: yes
+      async: 1
+      poll: 0
