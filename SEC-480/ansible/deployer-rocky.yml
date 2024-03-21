@@ -1,10 +1,11 @@
 #deploy deployer on Rocky
 - name: deploy deployer
   hosts: rocky
+  become: yes
   vars_prompt:
 
   - name: password
-    prompt: enter your new vyos password
+    prompt: enter your new deployer password
     private: true
 
   tasks:
@@ -16,6 +17,6 @@
         name: deployer
         state: present
         create_home: yes
-        groups: sudo
+        groups: wheel
         append: yes
         password: "{{ password_hash }}"
