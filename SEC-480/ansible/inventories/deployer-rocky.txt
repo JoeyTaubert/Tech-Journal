@@ -1,10 +1,7 @@
 [rocky]
-rocky-1
-ansible_host=10.0.5.75
-rocky-2
-ansible_host=10.0.5.76
-rocky-3
-ansible_host=10.0.5.77
+10.0.5.75
+10.0.5.76
+10.0.5.77
 
 [all:vars]
 ansible_user=joey
