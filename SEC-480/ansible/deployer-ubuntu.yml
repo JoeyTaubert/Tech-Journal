@@ -1,0 +1,20 @@
+---
+- name: Create deployer user and add to sudo group
+  hosts: ubuntu
+  become: true
+  vars_prompt:
+    - name: password
+      prompt: "Enter password for deployer user"
+      private: yes
+      encrypt: "sha512_crypt"
+      confirm: yes
+      salt_size: 7
+
+  tasks:
+    - name: Create deployer user and add to sudo
+      ansible.builtin.user:
+        name: deployer
+        password: "{{ password }}"
+        shell: /bin/bash
+        groups: sudo
+        append: yes
