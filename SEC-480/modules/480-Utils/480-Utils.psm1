@@ -86,7 +86,7 @@ function Select-480BaseVMName {
 
     $1-=1
 
-    $vindex = Read-Host "Index of VM to make network adapter change to"
+    $vindex = Read-Host "Index of VM you would like to use"
 
     # Input validation
     if ([int]$vindex -le $1 -and [int]$vindex -ge 1) {
