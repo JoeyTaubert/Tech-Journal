@@ -1,0 +1,52 @@
+# This playbook performs post-provisioning of ubuntu machines. 
+# Credit to ChatGPT for helping with this
+# 
+---
+- name: Setup Ubuntu Servers
+  hosts: ubuntu
+  become: true
+  tasks:
+    - name: Create the .ssh directory if it is not there
+      file:
+        path: "/home/{{ ansible_user }}/.ssh"
+        state: directory
+        mode: 0700
+        owner: deployer
+        group: deployer
+    - name: Create authorized_keys file if it does not exist
+      file:
+        path: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+        state: touch
+        mode: 0644
+        owner: deployer
+        group: deployer
+    - name: Copy over public key and append to authorized_keys
+      blockinfile:
+        path: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+        block: "{{ ansible_ssh_public_key }}"
+        mode: 0644
+
+    - name: create sudoers dropin file for 480
+      file: 
+        path: /etc/sudoers.d/480
+        state: touch
+        mode: 0440
+      become: yes
+
+    - name: Set hostname
+      hostname:
+        name: "{{ hostname }}"
+
+    - name: Change DHCP to static IP
+      template:
+        src: files/ubuntu/netplan.yaml.j2
+        dest: /etc/netplan/01-netcfg.yaml
+      become: yes
+
+    - name: apply netplan
+    # This will lose ansible connection, so we want to continue despite any errors
+      shell: netplan apply
+      async: 10
+      poll: 0
+      become: yes
+      ignore_errors: true
