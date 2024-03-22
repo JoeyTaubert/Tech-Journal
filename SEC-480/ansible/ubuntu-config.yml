@@ -2,7 +2,7 @@
 # Credit to ChatGPT for helping with this
 # 
 ---
-- name: Setup Ubuntu Servers
+- name: Post-Provisioning Ubuntu
   hosts: ubuntu
   become: true
   tasks:
