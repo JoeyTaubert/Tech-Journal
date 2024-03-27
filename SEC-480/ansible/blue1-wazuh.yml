@@ -1,0 +1,95 @@
+# This playbook installs Wazuh on a sever, which includes:
+# - Wazuh Indexer
+# - Wazuh Server + Filebeat
+# - Wazuh Dashboard
+# ChatGPT assisted with the creation of this playbook, however, I put in
+# all of the work to identify the required work. ChatGPT just helped me get it
+# into playbook form
+
+- name: Setup Wazuh Server (Indexer, Server (Manager), Filebeat, Dashboard)
+  hosts: wazuh
+  become: true
+
+  tasks:
+    - name: Ensure necessary directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ certs_dir_local }}"
+        - "{{ certs_dir_remote }}"
+
+    - name: Install necessary packages
+      ansible.builtin.apt:
+        name:
+          - gnupg
+          - apt-transport-https
+          - debconf
+          - adduser
+          - procps
+          - debhelper
+          - tar
+          - curl
+          - libcap2-bin
+        update_cache: yes
+
+    - name: Add Wazuh repository
+      ansible.builtin.apt_repository:
+        repo: deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/{{ wazuh_version }}/apt/ stable main
+        filename: wazuh
+      notify: Import Wazuh GPG key
+
+    - name: Install Wazuh Indexer, Manager, Filebeat, and Dashboard
+      ansible.builtin.apt:
+        name:
+          - wazuh-manager
+          - wazuh-indexer
+          - filebeat
+          - wazuh-dashboard
+        state: present
+
+    - name: Configure Filebeat to use Wazuh module
+      ansible.builtin.command:
+        cmd: filebeat modules enable wazuh
+      notify: Restart Filebeat
+
+    - name: Deploy Wazuh configuration files
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - { src: 'filebeat.yml.j2', dest: '/etc/filebeat/filebeat.yml' }
+        - { src: 'opensearch.yml.j2', dest: '/etc/wazuh-indexer/opensearch.yml' }
+      notify:
+        - Restart Wazuh Manager
+        - Restart Wazuh Indexer
+        - Restart Wazuh Dashboard
+
+  handlers:
+    - name: Import Wazuh GPG key
+      ansible.builtin.apt_key:
+        url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        state: present
+
+    - name: Restart Wazuh Manager
+      ansible.builtin.service:
+        name: wazuh-manager
+        state: restarted
+
+    - name: Restart Wazuh Indexer
+      ansible.builtin.service:
+        name: wazuh-indexer
+        state: restarted
+
+    - name: Restart Filebeat
+      ansible.builtin.service:
+        name: filebeat
+        state: restarted
+
+    - name: Restart Wazuh Dashboard
+      ansible.builtin.service:
+        name: wazuh-dashboard
+        state: restarted
