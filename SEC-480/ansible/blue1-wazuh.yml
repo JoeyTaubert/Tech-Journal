@@ -1,16 +1,55 @@
 # This playbook installs Wazuh on a sever, which includes:
 # - Wazuh Indexer
-# - Wazuh Server + Filebeat
+# - Wazuh Server (Manager) + Filebeat
 # - Wazuh Dashboard
 # ChatGPT assisted with the creation of this playbook, however, I put in
-# all of the work to identify the required work. ChatGPT just helped me get it
-# into playbook form
+# all of the work to identify the required commands. ChatGPT just helped me 
+# with getting it into playbook form
 
 - name: Setup Wazuh Server (Indexer, Server (Manager), Filebeat, Dashboard)
   hosts: wazuh
   become: true
+  vars_prompt: 
+  - name: admin_password
+    prompt: enter the Wazuh admin password
+    private: true
+  - name: API_password
+    prompt: enter the Wazuh API password
+    private: true
+    
 
   tasks:
+    # Step 1 - Generating Certs
+    - name: Download Wazuh Certs Tool
+      get_url:
+        url: "https://packages.wazuh.com/{{ wazuh_version }}/wazuh-certs-tool.sh"
+        dest: "/tmp/wazuh-certs-tool.sh"
+        mode: '0755'
+  
+    - name: Create config.yml
+      template:
+        src: "{{ config_template }}"
+        dest: "/tmp/config.yml"
+
+    - name: Generate Certificates
+      command:
+        cmd: "bash /tmp/wazuh-certs-tool.sh -A"
+      args:
+        chdir: "/tmp"
+        creates: "/tmp/wazuh-certificates.tar"
+
+    - name: Compress Certificates
+      command:
+        cmd: "tar -cvf wazuh-certificates.tar -C /tmp/wazuh-certificates/ ."
+      args:
+        creates: "wazuh-certificates.tar"
+
+    - name: Clean Up Certificates Directory
+      file:
+        path: "/tmp/wazuh-certificates"
+        state: absent
+
+    # Step 2 - Confirm Prereqs
     - name: Ensure necessary directories exist
       ansible.builtin.file:
         path: "{{ item }}"
@@ -33,63 +72,342 @@
           - libcap2-bin
         update_cache: yes
 
-    - name: Add Wazuh repository
-      ansible.builtin.apt_repository:
-        repo: deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/{{ wazuh_version }}/apt/ stable main
-        filename: wazuh
-      notify: Import Wazuh GPG key
-
-    - name: Install Wazuh Indexer, Manager, Filebeat, and Dashboard
-      ansible.builtin.apt:
-        name:
-          - wazuh-manager
-          - wazuh-indexer
-          - filebeat
-          - wazuh-dashboard
+    # Step 3 - Add Wazuh Repo
+    - name: Import Wazuh GPG key
+      apt_key:
+        url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
         state: present
+        keyring: /usr/share/keyrings/wazuh.gpg
 
-    - name: Configure Filebeat to use Wazuh module
-      ansible.builtin.command:
-        cmd: filebeat modules enable wazuh
-      notify: Restart Filebeat
-
-    - name: Deploy Wazuh configuration files
-      ansible.builtin.template:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
+    - name: Set proper permissions for Wazuh GPG key
+      ansible.builtin.file:
+        path: /usr/share/keyrings/wazuh.gpg
         owner: root
         group: root
         mode: '0644'
-      loop:
-        - { src: 'filebeat.yml.j2', dest: '/etc/filebeat/filebeat.yml' }
-        - { src: 'opensearch.yml.j2', dest: '/etc/wazuh-indexer/opensearch.yml' }
-      notify:
-        - Restart Wazuh Manager
-        - Restart Wazuh Indexer
-        - Restart Wazuh Dashboard
 
-  handlers:
-    - name: Import Wazuh GPG key
-      ansible.builtin.apt_key:
-        url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    - name: Add Wazuh repository
+      apt_repository:
+        repo: deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main
+        state: present
+        filename: wazuh
+
+    - name: Update the package cache
+      apt:
+        update_cache: yes
+
+    # Step 4 - Install Wazuh Indexer
+    - name: Install Wazuh Indexer
+      ansible.builtin.apt:
+        name:
+          - wazuh-indexer
         state: present
 
-    - name: Restart Wazuh Manager
-      ansible.builtin.service:
-        name: wazuh-manager
-        state: restarted
+    # Step 4a - Configure Wazuh Indexer
+    - name: Configure opensearch.yml
+      template:
+        src: "{{ opensearch_template }}"
+        dest: /etc/wazuh-indexer/opensearch.yml
 
-    - name: Restart Wazuh Indexer
-      ansible.builtin.service:
+
+    # Step 4b - Deploy Certificates for Indexer
+    - name: Create certificates directory
+      ansible.builtin.file:
+        path: "{{ certs_dest_dir }}"
+        state: directory
+        mode: '0500'
+
+    - name: Extract specific certificates
+      ansible.builtin.unarchive:
+        src: "{{ certs_src }}"
+        dest: "{{ certs_dest_dir }}"
+        remote_src: yes
+        extra_opts:
+          - "--no-anchored"
+          - "{{ node_name }}.pem"
+          - "{{ node_name }}-key.pem"
+          - "admin.pem"
+          - "admin-key.pem"
+          - "root-ca.pem"
+
+    - name: Rename node certificates for Wazuh Indexer
+      ansible.builtin.command:
+        cmd: "mv -n {{ certs_dest_dir }}/{{ item.src }} {{ certs_dest_dir }}/{{ item.dest }}"
+      loop:
+        - { src: "{{ node_name }}.pem", dest: "indexer.pem" }
+        - { src: "{{ node_name }}-key.pem", dest: "indexer-key.pem" }
+
+    - name: Set permissions for certificates directory
+      ansible.builtin.file:
+        path: "{{ certs_dest_dir }}"
+        mode: '0500'
+
+    - name: Set permissions for all certificates # No certs in list
+      ansible.builtin.file:
+        path: "/etc/wazuh-indexer/certs/{{ item }}"
+        mode: '0400'
+      with_fileglob:
+        - "/etc/wazuh-indexer/certs/*"
+
+    - name: Set ownership of certificates directory
+      ansible.builtin.file:
+        path: "{{ certs_dest_dir }}"
+        owner: wazuh-indexer
+        group: wazuh-indexer
+        recurse: yes
+
+    # Step 4c - Start Wazuh Indexer
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable Wazuh-Indexer service
+      ansible.builtin.systemd:
         name: wazuh-indexer
-        state: restarted
+        enabled: yes
 
-    - name: Restart Filebeat
-      ansible.builtin.service:
+    - name: Start Wazuh-Indexer service
+      ansible.builtin.systemd:
+        name: wazuh-indexer
+        state: started
+
+    # Step 5 - Initialize Cluster
+    - name: Run the indexer-security-init.sh script
+      ansible.builtin.command:
+        cmd: "/usr/share/wazuh-indexer/bin/indexer-security-init.sh"
+      register: script_output
+      failed_when: script_output.rc != 0
+
+    - name: Confirm installation success
+      uri:
+        url: "https://{{ ip }}:9200"
+        method: GET
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        validate_certs: no
+      register: installation_status
+      failed_when: installation_status.status != 200
+
+    - name: Confirm cluster is working
+      uri:
+        url: "https://{{ ip }}:9200/_cat/nodes?v"
+        method: GET
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        validate_certs: no
+      register: cluster_status
+      failed_when: cluster_status.status != 200
+
+    # Step 6 - Install Wazuh Server
+    - name: Install Wazuh Manager
+      ansible.builtin.apt:
+        name:
+          - wazuh-manager
+        state: present
+    # Step 6a - Install and Start Wazuh Manager
+    - name: Install Wazuh Manager package
+      ansible.builtin.apt:
+        name: wazuh-manager
+        state: present
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Wazuh Manager service
+      ansible.builtin.systemd:
+        name: wazuh-manager
+        enabled: yes
+        state: started
+
+    # Might want to add a check to verify the service is running
+
+    # Step 6b - Install Filebeat
+    - name: Install Filebeat
+      ansible.builtin.apt:
+        name:
+          - filebeat
+        state: present
+
+    # Step 6ba - Configure Filebeat
+    - name: Apply the Filebeat configuration template
+      ansible.builtin.template:
+        src: "{{ filebeat_template }}"
+        dest: "/etc/filebeat/filebeat.yml"
+        mode: '0644'
+
+    # Step 6c - Setup Filebeat Keystore
+    - name: Create Filebeat keystore
+      ansible.builtin.command:
+        cmd: filebeat keystore create
+        creates: /etc/filebeat/filebeat.keystore
+
+    - name: Add default username to the Filebeat keystore
+      ansible.builtin.shell:
+        cmd: "echo admin | filebeat keystore add username --stdin --force"
+
+    - name: Add default password to the Filebeat keystore
+      ansible.builtin.shell:
+        cmd: "echo {{ admin_password }} | filebeat keystore add password --stdin --force"
+
+    # Step 6d - Download and Configure Alerts Template
+    - name: Download the alerts template for the Wazuh indexer
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/wazuh/wazuh/v4.7.3/extensions/elasticsearch/7.x/wazuh-template.json"
+        dest: "/etc/filebeat/wazuh-template.json"
+        mode: '0644'
+
+    # Step 6e - Install Wazuh Module for Filebeat
+    - name: Download Wazuh module for Filebeat
+      ansible.builtin.get_url:
+        url: "https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-0.3.tar.gz"
+        dest: "/tmp/wazuh-filebeat-0.3.tar.gz"
+        mode: '0644'
+
+    - name: Extract Wazuh module for Filebeat
+      ansible.builtin.unarchive:
+        src: "/tmp/wazuh-filebeat-0.3.tar.gz"
+        dest: "/usr/share/filebeat/module"
+        remote_src: yes
+        extra_opts: --strip-components=1
+        creates: "/usr/share/filebeat/module/wazuh"
+
+    - name: Clean up downloaded archive
+      ansible.builtin.file:
+        path: "/tmp/wazuh-filebeat-0.3.tar.gz"
+        state: absent
+
+    # Step 6f - Deploy Certificates for Filebeat
+    - name: Ensure the /etc/filebeat/certs directory exists
+      ansible.builtin.file:
+        path: /etc/filebeat/certs
+        state: directory
+    
+    - name: Extract the necessary certificates # /etc/filebeat/certs must be an existing dir
+      ansible.builtin.unarchive:
+        src: "{{ certs_src }}"
+        dest: "/etc/filebeat/certs"
+        remote_src: yes
+        extra_opts: ["--no-anchored", "{{ server_name }}.pem", "{{ server_name }}-key.pem", "root-ca.pem"]
+
+    - name: Rename wazuh-1.pem to filebeat.pem
+      ansible.builtin.command:
+        cmd: mv -n /etc/filebeat/certs/wazuh-1.pem /etc/filebeat/certs/filebeat.pem
+
+    - name: Rename wazuh-1-key.pem to filebeat-key.pem
+      ansible.builtin.command:
+        cmd: mv -n /etc/filebeat/certs/wazuh-1-key.pem /etc/filebeat/certs/filebeat-key.pem
+
+    
+    - name: Set permissions for the certificates directory
+      ansible.builtin.file:
+        path: "/etc/filebeat/certs"
+        mode: '0500'
+        recurse: yes
+    
+    - name: Set permissions for certificate files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        mode: '0400'
+      with_items:
+        - "/etc/filebeat/certs/filebeat.pem"
+        - "/etc/filebeat/certs/filebeat-key.pem"
+        - "/etc/filebeat/certs/root-ca.pem"
+
+    - name: Ensure correct ownership of the certificates
+      ansible.builtin.file:
+        path: "/etc/filebeat/certs"
+        owner: root
+        group: root
+        recurse: yes
+
+    # Step 6g - Start Filebeat
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Filebeat
+      ansible.builtin.systemd:
         name: filebeat
-        state: restarted
+        enabled: yes
+        state: started
 
-    - name: Restart Wazuh Dashboard
-      ansible.builtin.service:
+    # Step 7 - Install Wazuh Dashboard
+    - name: Install Wazuh Dashboard
+      ansible.builtin.apt:
+        name:
+          - wazuh-dashboard
+        state: present
+
+    # Step 7a - Configure Wazuh Dashboard
+    - name: Deploy templated opensearch_dashboards.yml
+      ansible.builtin.template:
+        src: "{{ opensearch_dashboard_template }}"
+        dest: /etc/wazuh-dashboard/opensearch_dashboards.yml
+        owner: wazuh-dashboard
+        group: wazuh-dashboard
+        mode: '0644'
+
+    # Step 7b - Deploy Certificates for Dashboard
+    - name: Ensure the /etc/wazuh-dashboard/certs directory exists
+      ansible.builtin.file:
+        path: /etc/wazuh-dashboard/certs
+        state: directory
+        owner: wazuh-dashboard
+        group: wazuh-dashboard
+        mode: '0700'
+
+    - name: Extract the specific certificates from the tar file
+      ansible.builtin.unarchive:
+        src: "{{ certs_src }}"
+        dest: /etc/wazuh-dashboard/certs/
+        remote_src: yes
+        extra_opts:
+          - --no-anchored
+          - "{{ dashboard_name }}.pem"
+          - "{{ dashboard_name }}-key.pem"
+          - "root-ca.pem"
+
+    - name: Rename certificate files
+      ansible.builtin.command:
+        cmd: >
+          mv -n /etc/wazuh-dashboard/certs/{{ item.src }} /etc/wazuh-dashboard/certs/{{ item.dest }}
+      loop:
+        - { src: "{{ dashboard_name }}.pem", dest: "dashboard.pem" }
+        - { src: "{{ dashboard_name }}-key.pem", dest: "dashboard-key.pem" }
+
+    - name: Set permissions for certificates
+      ansible.builtin.file:
+        path: "{{ item }}"
+        owner: wazuh-dashboard
+        group: wazuh-dashboard
+        mode: "{{ item | regex_replace('^(.*)/[^/]+$', '0400') }}"
+      loop:
+        - /etc/wazuh-dashboard/certs/dashboard.pem
+        - /etc/wazuh-dashboard/certs/dashboard-key.pem
+        - /etc/wazuh-dashboard/certs/root-ca.pem
+  
+    # Step 7c - Start Wazuh Dashboard
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Wazuh Dashboard
+      ansible.builtin.systemd:
         name: wazuh-dashboard
-        state: restarted
+        enabled: yes
+        state: started
+
+    # Step 8 - Secure the Installation
+    - name: Change passwords using Wazuh passwords tool
+      ansible.builtin.command:
+        cmd: >
+          /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh
+          --change-all
+          --admin-user {{ API_user }}
+          --admin-password {{ API_password }}
+      register: change_passwords_result
+
+    - name: Show output
+      ansible.builtin.debug:
+        var: change_passwords_result.stdout_lines

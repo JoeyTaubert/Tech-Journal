@@ -1,0 +1,17 @@
+nodes:
+  # Wazuh indexer nodes
+  indexer:
+    - name: "{{ node_name }}"
+      ip: "{{ ip }}"
+
+  # Wazuh server nodes
+  # If there is more than one Wazuh server
+  # node, each one must have a node_type
+  server:
+    - name: "{{ server_name }}"
+      ip: "{{ ip }}"
+
+  # Wazuh dashboard nodes
+  dashboard:
+    - name: "{{ dashboard_name }}"
+      ip: "{{ ip }}"
