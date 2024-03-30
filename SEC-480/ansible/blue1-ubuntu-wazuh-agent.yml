@@ -1,0 +1,69 @@
+# This playbook installs a Wazuh agent on Ubuntu systems
+# Developed by Joey Taubert
+#         with assistance from ChatGPT
+
+- name: Install Wazuh agent on Ubuntu
+  hosts: ubuntu
+  become: yes
+  tasks:
+
+  # Step 1 - Add Wazuh repo
+  - name: Get Wazuh GPG key and set permissions
+    block:
+      - name: Import Wazuh GPG key
+        shell:
+          cmd: >
+            curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH |
+            gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import
+        args:
+          creates: /usr/share/keyrings/wazuh.gpg
+
+      - name: Set correct permissions on Wazuh GPG keyring
+        file:
+          path: /usr/share/keyrings/wazuh.gpg
+          mode: '0644'
+
+  - name: Add Wazuh repository
+    lineinfile:
+      path: /etc/apt/sources.list.d/wazuh.list
+      line: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+      create: yes
+      state: present
+
+  - name: Apt update
+    apt:
+      update_cache: yes
+
+  # Step 2 - Deploy agent to endpoint
+  - name: Deploy agent
+    apt:
+      name: wazuh-agent
+      state: present
+    environment:
+      WAZUH_MANAGER: "{{ wazuh_manager_ip }}"
+
+  - name: Reload systemd daemon
+    systemd:
+      daemon_reload: yes
+
+  - name: Enable wazuh-agent 
+    systemd:
+      name: wazuh-agent
+      enabled: yes
+
+  - name: Start wazuh-agent 
+    systemd:
+      name: wazuh-agent
+      state: started
+
+  # Step 3 - Disable Wazuh updates
+  - name: Disable Wazuh updates
+    replace:
+      path: /etc/apt/sources.list.d/wazuh.list
+      regexp: '^deb'
+      replace: '#deb'
+
+  - name: Apt update
+    apt:
+      update_cache: yes
+  

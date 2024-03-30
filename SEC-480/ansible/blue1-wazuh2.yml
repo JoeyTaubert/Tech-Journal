@@ -1,0 +1,86 @@
+# This playbook installs Wazuh via the assisted installation method
+# Developed by Joey Taubert
+#       with assistance from ChatGPT
+
+- name: Install and configure Wazuh indexer
+  hosts: wazuh
+  become: true
+  tasks:
+
+  # Step 1 - Prereqs, Indexer, and Cluster
+  - name: Download wazuh-install.sh 
+    get_url:
+      url: https://packages.wazuh.com/4.7/wazuh-install.sh
+      dest: "./wazuh-install.sh"
+
+  - name: Grab templated config.yml
+    template:
+      src: /home/joey/Tech-Journal/SEC-480/ansible/files/wazuh/config.yml.j2
+      dest: "./config.yml"
+
+  - name: Run script to generate config files
+    shell:
+      cmd: bash wazuh-install.sh --generate-config-files
+  
+  - name: Run script to install/configure indexer
+    shell:
+      cmd: "bash wazuh-install.sh --wazuh-indexer {{ node_name }}"
+
+  - name: Run script to create the cluster
+    shell:
+      cmd: bash wazuh-install.sh --start-cluster
+
+  - name: Get admin password
+    shell: >
+      tar -axf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt -O |
+      grep -P "indexer_password: '(.*)'" -o
+    register: password_output
+    check_mode: no
+    changed_when: false
+
+  - name: Set fact for admin password
+    set_fact:
+      admin_password: "{{ password_output.stdout | regex_findall(\"indexer_password: '(.*)'\") | first | replace(\"indexer_password: '\", '') | replace(\"'\", '') }}"
+
+  - name: Confirm indexer successful installation
+    uri:
+      url: "https://{{ ip }}:9200"
+      user: admin
+      password: "{{ admin_password }}"
+      method: GET
+      validate_certs: no
+    register: result
+
+  - debug:
+      var: result
+
+  - name: Confirm cluster successful creation
+    uri:
+      url: "https://{{ ip }}:9200/_cat/nodes?v"
+      user: admin
+      password: "{{ admin_password }}"
+      method: GET
+      validate_certs: no
+    register: result
+
+  - debug:
+      var: result
+
+  # Step 2 - Server/Manager
+  - name: Run script to install/configure server
+    shell:
+      cmd: "bash wazuh-install.sh --wazuh-server {{ server_name }}"
+
+  # Step 3 - Dashboard
+  - name: Run script to install/configure dashboard
+    shell:
+      cmd: "bash wazuh-install.sh --wazuh-dashboard {{ dashboard_name }}"
+
+  - name: Extract wazuh-passwords.txt from tar archive
+    command:
+      cmd: tar -O -xvf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt
+    register: tar_output
+
+  - name: Display the contents of wazuh-passwords.txt
+    debug:
+      msg: "{{ tar_output.stdout }}"

@@ -1,10 +1,13 @@
-# This playbook installs Wazuh on a sever, which includes:
+# This playbook installs Wazuh via the step-by-step method, which includes:
 # - Wazuh Indexer
 # - Wazuh Server (Manager) + Filebeat
 # - Wazuh Dashboard
 # ChatGPT assisted with the creation of this playbook, however, I put in
 # all of the work to identify the required commands. ChatGPT just helped me 
 # with getting it into playbook form
+
+# NOT WORKING!!!
+
 
 - name: Setup Wazuh Server (Indexer, Server (Manager), Filebeat, Dashboard)
   hosts: wazuh
@@ -142,7 +145,7 @@
         path: "{{ certs_dest_dir }}"
         mode: '0500'
 
-    - name: Set permissions for all certificates # No certs in list
+    - name: Set permissions for all certificates # No certs in list, gets skipped
       ansible.builtin.file:
         path: "/etc/wazuh-indexer/certs/{{ item }}"
         mode: '0400'
@@ -269,7 +272,7 @@
         src: "/tmp/wazuh-filebeat-0.3.tar.gz"
         dest: "/usr/share/filebeat/module"
         remote_src: yes
-        extra_opts: --strip-components=1
+        #extra_opts: --strip-components=1
         creates: "/usr/share/filebeat/module/wazuh"
 
     - name: Clean up downloaded archive
@@ -398,16 +401,16 @@
         enabled: yes
         state: started
 
-    # Step 8 - Secure the Installation
-    - name: Change passwords using Wazuh passwords tool
-      ansible.builtin.command:
-        cmd: >
-          /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh
-          --change-all
-          --admin-user {{ API_user }}
-          --admin-password {{ API_password }}
-      register: change_passwords_result
-
-    - name: Show output
-      ansible.builtin.debug:
-        var: change_passwords_result.stdout_lines
+#    # Step 8 - Secure the Installation
+#    - name: Change passwords using Wazuh passwords tool
+#      ansible.builtin.command:
+#        cmd: >
+#          /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh
+#          --change-all
+#          --admin-user {{ API_user }}
+#          --admin-password {{ API_password }}
+#      register: change_passwords_result
+#
+#    - name: Show output
+#      ansible.builtin.debug:
+#        var: change_passwords_result.stdout_lines
