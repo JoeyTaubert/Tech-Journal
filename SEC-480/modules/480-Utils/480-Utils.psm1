@@ -754,6 +754,47 @@ function Remove-480Network([string]$vSwitchName) {
     Write-Host ", removed. Exiting..."
 }
 
+# Usage: Set-480WindowsStaticIP -vmName blue1-dc -username deployer - ipAddress 10.0.5.5 -subnetMask 255.255.255.0 -defaultGateway 10.0.5.2 -DNSServer 10.0.5.2
+function Set-480WindowsStaticIP {
+    param( # Credit to ChatGPT for help with this param block
+        [Parameter(Mandatory=$true, HelpMessage="Enter the VM Name")]
+        [string]$vmName,
+
+        [Parameter(Mandatory=$true, HelpMessage="Enter the username")]
+        [string]$username,
+
+        [Parameter(Mandatory=$true, HelpMessage="Enter the IP Address")]
+        [string]$ipAddress,
+
+        [Parameter(Mandatory=$true, HelpMessage="Enter the Subnet Mask")]
+        [string]$subnetMask,
+
+        [Parameter(Mandatory=$true, HelpMessage="Enter the Default Gateway")]
+        [string]$defaultGateway,
+
+        [Parameter(Mandatory=$true, HelpMessage="Enter the DNS address")]
+        [string]$DNSServer
+    )
+
+    # Get password
+    $password = Read-Host "Provide the user's password" -AsSecureString
+
+    # Build the netsh commands
+    ##
+    ## netsh interface ip set address "Ethernet0" static 10.0.5.5 255.255.255.0 10.0.5.2
+    ## netsh interface ip set dnsservers "Ethernet0" static 10.0.5.2 primary
+
+    $script = @"
+netsh interface ip set address `"Ethernet0`" static $ipAddress $subnetMask $defaultGateway 1
+netsh interface ip set dnsservers `"Ethernet0`" static $($DNSServer) primary no
+"@
+
+    # Invoke the commands
+    Invoke-VMScript -VM $vmName -ScriptText $script -GuestUser $username -GuestPassword $password -ScriptType PowerShell
+}
+
+
+
 function 480Network {
     Write-Host "-=-=-= 480Network Functions =-=-=-" -ForegroundColor Green
     Write-Host "1. " -NoNewline
@@ -788,6 +829,7 @@ function 480Network {
     }
 }
 
+
 function 480Utils {
     480Banner
     
@@ -821,7 +863,7 @@ function 480Utils {
         Write-Host "Exit" -ForegroundColor Red
 
         Write-Host ""
-        [int]$pick = Read-Host "What would you like to do?"
+        [int]$pick = Read-Host "What would you like to do? [#]"
 
         Write-Host ""
 
