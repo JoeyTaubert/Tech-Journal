@@ -1,0 +1,101 @@
+---
+- name: Change Administrator password via SSH on Windows
+  hosts: windows
+  gather_facts: no
+  vars_prompt:
+    - name: adm_pass
+      prompt: "Enter new local Administrator password"
+      private: yes
+    - name: safe_pass
+      prompt: "Enter safe mode password"
+    - name: admin_pass
+      prompt: "Enter new 'blue1-joey-adm' password"
+
+
+  tasks:
+    - name: Change the Administrator password
+      win_user:
+        name: Administrator
+        password: "{{ adm_pass }}"
+        update_password: always
+
+    - name: Set the hostname of the Windows system
+      win_hostname:
+        name: "{{ hostname }}"
+      register: hostname_change
+
+      # https://docs.ansible.com/ansible/latest/collections/microsoft/ad/domain_module.html
+      # community.windows.win_domain modules are being phased out in favor of microsoft.ad.domain 
+
+    - name: Create blue1.local 
+      microsoft.ad.domain:
+        dns_domain_name: "blue1.local"
+        safe_mode_password: "{{ safe_pass }}"
+        reboot: true
+      register: domain_output
+
+    - name: Create domain admin user
+      microsoft.ad.user:
+        name: "{{ admin_user }}"
+        firstname: "joey-adm"
+        password: "{{ admin_pass }}"
+        groups:
+          set:
+            - "Domain Admins"
+            - "Domain Users"
+        enabled: true
+        state: present
+      register: admin_output
+      
+    - name: Promote server to a domain controller
+      microsoft.ad.domain_controller:
+        dns_domain_name: blue1.local
+        domain_admin_user: "BLUE1\\joey-adm"
+        domain_admin_password: "{{ admin_pass }}"
+        safe_mode_password: "{{ safe_pass }}"
+        state: domain_controller
+        reboot: true
+      register: dc_output
+
+
+    # https://docs.ansible.com/ansible/latest/collections/microsoft/ad/ou_module.html
+    - name: Create blue1 OU
+      microsoft.ad.ou:
+        name: blue1
+        path: "DC=blue1,DC=local"
+    
+    - name: Create Accounts OU
+      microsoft.ad.ou:
+        name: Accounts
+        path: "OU=blue1,DC=blue1,DC=local"
+        state: present
+        protect_from_deletion: true
+
+    - name: Create Groups OU
+      microsoft.ad.ou:
+        name: Groups
+        path: "OU=Accounts,OU=blue1,DC=blue1,DC=local"
+        state: present
+        protect_from_deletion: true
+
+
+    - name: Create Computers OU
+      microsoft.ad.ou:
+        name: Computers
+        path: "OU=blue1,DC=blue1,DC=local"
+        state: present
+        protect_from_deletion: true
+
+    - name: Create Servers OU
+      microsoft.ad.ou:
+        name: Servers
+        path: "OU=Computers,OU=blue1,DC=blue1,DC=local"
+        state: present
+        protect_from_deletion: true
+
+    - name: Create Workstations OU
+      microsoft.ad.ou:
+        name: Workstations
+        path: "OU=Computers,OU=blue1,DC=blue1,DC=local"
+        state: present
+        protect_from_deletion: true

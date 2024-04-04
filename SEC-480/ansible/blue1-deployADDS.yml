@@ -1,0 +1,95 @@
+---
+- name: blue1-dc post provisioning
+  hosts: windows
+  vars_prompt:
+    - name: password
+      prompt: "Enter password for local admin user"
+      private: yes
+
+    - name: dom_pass
+      prompt: "Enter domain admin password"
+      private: yes
+
+    - name: safe_pass
+      prompt: "Enter password for safe mode"
+      private: yes
+
+
+  tasks:
+    - name: Set local admin password
+      win_user:
+        name: Administrator
+        password: "{{ password }}"
+
+    - name: Set hostname
+      win_hostname:
+        name: blue1-dc
+      register: result
+      notify: Reboot
+
+    - name: Install ADDS & DNS
+      win_feature:
+        name:
+          - AD-Domain-Services
+          - DNS
+        state: present
+
+    - name: Create a new blue1.local domain
+      win_domain:
+        dns_domain_name: "blue1.local"
+        domain_netbios_name: "BLUE1"
+        safe_mode_password: "{{ safe_pass }}"
+        domain_name_password: "{{ dom_pass }}"
+        create_dns_delegation: no
+        ignore_existing: no
+      register: domain_install
+      notify: Reboot
+
+#    - name: Add DNS Server Forwarder
+#      microsoft.ad.dnsserver:
+#        forwarders:
+#          - "{{ dns_ip }}"
+#        state: present
+
+    - name: Create blue1 OU
+      community.windows.win_domain_ou:
+        name: blue1
+        path: "DC=blue1,DC=local"
+        state: present
+
+    - name: Create Accounts OU
+      community.windows.win_domain_ou:
+        name: Accounts
+        path: "OU=Accounts,OU=blue1,DC=blue1,DC=local"
+        state: present
+
+    - name: Create Groups OU
+      community.windows.win_domain_ou:
+        name: Groups
+        path: "OU=Groups,OU=Accounts,OU=blue1,DC=blue1,DC=local"
+        state: present
+
+    - name: Create Computers OU
+      community.windows.win_domain_ou:
+        name: Computers
+        path: "OU=Computers,OU=blue1,DC=blue1,DC=local"
+        state: present
+
+    - name: Create Servers OU
+      community.windows.win_domain_ou:
+        name: Servers
+        path: "OU=Servers,OU=Computers,OU=blue1,DC=blue1,DC=local"
+        state: present
+
+    - name: Create Workstations OU
+      community.windows.win_domain_ou:
+        name: Workstations
+        path: "OU=Workstations,OU=Computers,OU=blue1,DC=blue1,DC=local"
+        state: present
+
+  handlers:
+    - name: Reboot
+      win_reboot:
+        msg: "Rebooting Windows"
+        pre_reboot_delay: 5
+        post_reboot_delay: 60
