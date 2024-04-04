@@ -1,5 +1,5 @@
 ---
-- name: Change Administrator password via SSH on Windows
+- name: Post Provisioning Windows Server
   hosts: windows
   gather_facts: no
   vars_prompt:
